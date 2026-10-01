@@ -56,4 +56,14 @@
     hero.addEventListener("mouseleave", start);
     start();
   });
+
+  var shuffle = document.getElementById("library-shuffle");
+  if (shuffle) {
+    shuffle.addEventListener("click", function (event) {
+      event.preventDefault();
+      var href = shuffle.getAttribute("href") || "/";
+      var join = href.indexOf("?") === -1 ? "?" : "&";
+      window.location = href + join + "shuffle=" + Date.now();
+    });
+  }
 })();

@@ -42,6 +42,21 @@
   </div>
   {% endif %}
 
+  {% if discover_picks %}
+  <section class="library-row-wrap library-discover-wrap" aria-labelledby="discover-heading">
+    <div class="library-row-head">
+      <h2 id="discover-heading">{{ _('Discover') }}</h2>
+      <a class="btn library-shuffle" id="library-shuffle" href="{{ url_for('web.index') }}">{{ _('Shuffle') }}</a>
+    </div>
+    <p class="library-discover-lead">{{ _('Not sure what to read next? Try a random pick.') }}</p>
+    <div class="library-discover">
+      {% for book in discover_picks %}
+        {{ cards.book_card(book) }}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
   {% if recent_books %}
   <section class="library-row-wrap" aria-labelledby="recent-heading">
     <div class="library-row-head">

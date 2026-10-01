@@ -489,6 +489,35 @@ body.login .col-sm-10 {
   background: #fff;
 }
 
+.library-discover {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.library-discover .library-card {
+  flex-basis: 200px;
+}
+
+.library-discover-lead {
+  color: #666;
+  margin: 0 4px 10px;
+}
+
+.library-shuffle {
+  background: #e50914;
+  color: #fff;
+  border: 0;
+  border-radius: 20px;
+  padding: 6px 16px;
+}
+
+.library-shuffle:hover,
+.library-shuffle:focus {
+  background: #f6121d;
+  color: #fff;
+}
+
 @media (max-width: 720px) {
   .library-hero {
     padding: 18px;

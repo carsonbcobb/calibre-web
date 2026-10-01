@@ -27,7 +27,22 @@ def render_home():
         genre_rows=genre_rows(),
         collections=collection_cards(),
         heroes=hero_slides(),
+        discover_picks=discover_books(),
     )
+
+
+def discover_books(limit=3):
+    try:
+        from .. import calibre_db, db
+        return (calibre_db.session.query(db.Books)
+                .filter(db.Books.has_cover == 1)
+                .filter(calibre_db.common_filters())
+                .order_by(func.random())
+                .limit(limit)
+                .all())
+    except Exception as error:
+        log.debug("Discover picks unavailable: %s", error)
+        return []
 
 
 def recent_books(limit=24):
