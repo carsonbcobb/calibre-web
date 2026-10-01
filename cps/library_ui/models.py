@@ -10,7 +10,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, LargeBinary, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, LargeBinary, String, Text
 try:
     from sqlalchemy.orm import declarative_base
 except ImportError:
@@ -77,3 +77,21 @@ class LibraryBookStat(Base):
 
     def __repr__(self):
         return "<LibraryBookStat %s>" % self.book_id
+
+
+class LibraryRating(Base):
+    """Cached external rating. Stored only in app.db."""
+
+    __tablename__ = "library_ui_rating"
+
+    id = Column(Integer, primary_key=True)
+    book_id = Column(Integer, nullable=False, index=True)
+    provider = Column(String(32), nullable=False)
+    rating = Column(Float)
+    rating_count = Column(Integer)
+    source_url = Column(String(300), default="")
+    fetched_at = Column(DateTime)
+    error = Column(String(200), default="")
+
+    def __repr__(self):
+        return "<LibraryRating %s %s>" % (self.book_id, self.provider)

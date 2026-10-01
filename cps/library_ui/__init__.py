@@ -19,9 +19,11 @@ def register_library_ui(app):
     from .blueprint import library_ui_bp
     from .context import library_context
     from .reading import read_bits
+    from .ratings.service import rating_bits
     from .store import ensure_tables
 
     ensure_tables()
     app.register_blueprint(library_ui_bp)
     app.context_processor(library_context)
     app.jinja_env.globals["library_read_bits"] = read_bits
+    app.jinja_env.globals["library_rating_bits"] = rating_bits

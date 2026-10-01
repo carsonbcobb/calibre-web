@@ -1665,6 +1665,11 @@ def show_book(book_id):
                 entry.audio_entries.append(media_format.format.lower())
 
         from .library_ui.series_books import books_in_series
+        try:
+            from .library_ui.ratings.service import ensure_ratings
+            ensure_ratings(entry)
+        except Exception as rating_error:
+            log.debug("External ratings skipped: %s", rating_error)
         return render_title_template('detail.html',
                                      entry=entry,
                                      cc=cc,

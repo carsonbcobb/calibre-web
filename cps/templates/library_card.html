@@ -17,6 +17,9 @@
   {% if library_read_bits(book.id) %}
   <span class="library-card-time">{{ library_read_bits(book.id) }}</span>
   {% endif %}
+  {% if library_rating_bits(book.id) %}
+  <span class="library-card-rating">{{ library_rating_bits(book.id) }}</span>
+  {% endif %}
 </a>
 {%- endmacro %}
 

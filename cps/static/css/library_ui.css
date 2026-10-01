@@ -615,9 +615,17 @@ body.login .col-sm-10 {
 }
 
 .library-card-time,
-.library-read-time {
+.library-read-time,
+.library-card-rating,
+.library-rating {
   display: block;
   margin-top: 4px;
   color: #666;
   font-size: 12px;
+}
+
+.library-card-rating,
+.library-rating {
+  color: #b8860b;
+  font-weight: 600;
 }

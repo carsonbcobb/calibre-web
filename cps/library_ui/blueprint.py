@@ -19,6 +19,7 @@ from .css_sanitize import sanitize_css
 from .heroes import add_hero, delete_hero, list_heroes, move_hero, search_books, shelf_choices
 from .login_collage import book_for_slot, cover_response
 from .reading import scan_all
+from .ratings.service import fetch_missing, hardcover_token, save_hardcover_token
 from .store import get_setting, set_setting
 
 library_ui_bp = Blueprint("library_ui", __name__)
@@ -131,11 +132,20 @@ def heroes():
 @admin_required
 def scan_reading():
     if request.method == "POST":
-        done, total = scan_all()
-        flash(_("Scanned %(done)s of %(total)s books.", done=done, total=total), category="success")
+        action = request.form.get("action") or "scan"
+        if action == "token":
+            save_hardcover_token(request.form.get("hardcover_token", ""))
+            flash(_("Hardcover token saved."), category="success")
+        elif action == "ratings":
+            count = fetch_missing()
+            flash(_("Fetched ratings for %(count)s books.", count=count), category="success")
+        else:
+            done, total = scan_all()
+            flash(_("Scanned %(done)s of %(total)s books.", done=done, total=total), category="success")
         return redirect(url_for("library_ui.scan_reading"))
     return render_title_template(
         "library_ui_scan.html",
         title=_("Reading time"),
         page="adminscan",
+        hardcover_token=hardcover_token(),
     )
