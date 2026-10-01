@@ -62,3 +62,18 @@ class LibraryHero(Base):
 
     def __repr__(self):
         return "<LibraryHero %s %s>" % (self.kind, self.target_id)
+
+
+class LibraryBookStat(Base):
+    """Cached page and word counts. Stored only in app.db."""
+
+    __tablename__ = "library_ui_book_stat"
+
+    book_id = Column(Integer, primary_key=True)
+    page_count = Column(Integer)
+    word_count = Column(Integer)
+    source_format = Column(String(16), default="")
+    scanned_at = Column(DateTime)
+
+    def __repr__(self):
+        return "<LibraryBookStat %s>" % self.book_id

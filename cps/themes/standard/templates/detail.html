@@ -132,6 +132,9 @@
                 </div>
             </div>
             <h2 id="title">{{ entry.title }}</h2>
+            {% if library_read_bits(entry.id) %}
+            <p class="library-read-time">{{ library_read_bits(entry.id) }}</p>
+            {% endif %}
             <p class="author">
                 {% for author in entry.ordered_authors %}
                     <a href="{{ url_for('web.books_list',  data='author', sort_param='stored', book_id=author.id ) }}">{{ author.name.replace('|',',') }}</a>

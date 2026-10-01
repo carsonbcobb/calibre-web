@@ -156,6 +156,11 @@ def upload():
                 upload_text = N_("File %(file)s uploaded", file=link)
                 WorkerThread.add(current_user.name, TaskUpload(upload_text, escape(title)))
                 helper.add_book_to_thumbnail_cache(book_id)
+                try:
+                    from .library_ui.reading import scan_book
+                    scan_book(book_id)
+                except Exception as scan_error:
+                    log.debug("Reading time scan skipped: %s", scan_error)
 
                 if len(request.files.getlist("btn-upload")) < 2:
                     if current_user.role_edit() or current_user.role_admin():

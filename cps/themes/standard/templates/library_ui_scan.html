@@ -1,0 +1,14 @@
+{% extends theme("layout.html") %}
+{% block body %}
+<div class="col-sm-12 col-md-8">
+  <h2>{{ _('Reading time') }}</h2>
+  <p class="text-muted">
+    {{ _('This reads EPUB and PDF files already in the library, counts words and pages, and saves the result here. It does not change your Calibre library. New uploads are scanned on their own.') }}
+  </p>
+  <form method="POST" action="{{ url_for('library_ui.scan_reading') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-primary" type="submit" id="scan_reading">{{ _('Scan books') }}</button>
+    <a class="btn btn-default" href="{{ url_for('admin.admin') }}">{{ _('Back to Admin') }}</a>
+  </form>
+</div>
+{% endblock %}

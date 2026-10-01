@@ -38,6 +38,9 @@
             {% endif %}
           {% endfor %}
         </p>
+        {% if library_read_bits(entry.Books.id) %}
+        <p class="library-read-time">{{ library_read_bits(entry.Books.id) }}</p>
+        {% endif %}
         {% if entry.Books.series.__len__() > 0 %}
         <p class="series">
           <a href="{{url_for('web.books_list', data='series', sort_param='stored', book_id=entry.Books.series[0].id )}}">
@@ -124,6 +127,9 @@
             <span class="glyphicon glyphicon-music"></span>
           {% endif %}
         </p>
+        {% if library_read_bits(entry.Books.id) %}
+        <p class="library-read-time">{{ library_read_bits(entry.Books.id) }}</p>
+        {% endif %}
         {% if entry.Books.series.__len__() > 0 %}
         <p class="series">
         {% if page != "series" %}

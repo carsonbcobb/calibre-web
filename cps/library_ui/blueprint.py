@@ -18,6 +18,7 @@ from .branding import delete_asset, get_asset, save_upload
 from .css_sanitize import sanitize_css
 from .heroes import add_hero, delete_hero, list_heroes, move_hero, search_books, shelf_choices
 from .login_collage import book_for_slot, cover_response
+from .reading import scan_all
 from .store import get_setting, set_setting
 
 library_ui_bp = Blueprint("library_ui", __name__)
@@ -122,4 +123,19 @@ def heroes():
         matches=search_books(query),
         shelves=shelf_choices(),
         query=query,
+    )
+
+
+@library_ui_bp.route("/admin/library/scan", methods=["GET", "POST"])
+@user_login_required
+@admin_required
+def scan_reading():
+    if request.method == "POST":
+        done, total = scan_all()
+        flash(_("Scanned %(done)s of %(total)s books.", done=done, total=total), category="success")
+        return redirect(url_for("library_ui.scan_reading"))
+    return render_title_template(
+        "library_ui_scan.html",
+        title=_("Reading time"),
+        page="adminscan",
     )
