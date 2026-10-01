@@ -82,5 +82,9 @@ def main():
         app.register_blueprint(kobo_auth)
     if oauth_available:
         app.register_blueprint(oauth)
+
+    from .library_ui import register_library_ui
+    register_library_ui(app)
+
     success = web_server.start()
     sys.exit(0 if success else 1)

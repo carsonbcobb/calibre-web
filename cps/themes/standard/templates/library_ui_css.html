@@ -1,0 +1,19 @@
+{% extends theme("layout.html") %}
+{% block body %}
+<div class="col-sm-12 col-md-10 col-lg-8">
+  <h2>{{ _('Custom CSS') }}</h2>
+  <p class="text-muted">
+    {{ _('These styles load after every other stylesheet on the page. Use them for visual tweaks. Angle brackets are removed so the stylesheet cannot break out of the page.') }}
+  </p>
+  <form method="POST" action="{{ url_for('library_ui.custom_css') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+      <label for="custom_css">{{ _('Extra CSS') }}</label>
+      <textarea class="form-control" id="custom_css" name="custom_css" rows="16" spellcheck="false">{{ custom_css }}</textarea>
+    </div>
+    <p class="help-block">{{ _('Example: body { background: #141414; }') }}</p>
+    <button type="submit" class="btn btn-primary" id="save_custom_css">{{ _('Save CSS') }}</button>
+    <a class="btn btn-default" href="{{ url_for('admin.admin') }}">{{ _('Back to Admin') }}</a>
+  </form>
+</div>
+{% endblock %}

@@ -18,6 +18,10 @@
     {% block header %}{% endblock %}
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" media="screen">
     <link href="{{ url_for('static', filename='css/upload.css') }}" rel="stylesheet" media="screen">
+    <link href="{{ url_for('static', filename='css/library_ui.css') }}" rel="stylesheet" media="screen">
+    {% if library_custom_css %}
+    <style id="library-custom-css">{{ library_custom_css|safe }}</style>
+    {% endif %}
   </head>
   <body class="{{ page }} {{ bodyClass }}">
     <!-- Static navbar -->
