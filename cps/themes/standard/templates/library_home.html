@@ -20,6 +20,8 @@
         {% if slide.href_kind == 'collection' %}
         <a class="btn library-hero-open" href="{{ url_for('shelf.show_shelf', shelf_id=slide.shelf.id) }}">{{ _('View collection') }}</a>
         {% elif slide.book %}
+        {% set book = slide.book %}
+        {% include 'library_send.html' %}
         <a class="btn library-hero-open" href="{{ url_for('web.show_book', book_id=slide.book.id) }}">{{ _('View book') }}</a>
         {% endif %}
       </div>

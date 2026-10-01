@@ -1,0 +1,6 @@
+{% set send = library_send_choice(book) %}
+{% if send %}
+<button type="button" class="btn library-send-kindle" data-href="{{ url_for('web.send_to_ereader', book_id=book.id, book_format=send['format'], convert=send['convert']) }}">
+  {{ _('Send to Kindle') }}
+</button>
+{% endif %}

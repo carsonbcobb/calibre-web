@@ -14,6 +14,32 @@
   }
 
   document.addEventListener("click", function (event) {
+    var send = event.target.closest(".library-send-kindle");
+    if (send) {
+      event.preventDefault();
+      event.stopPropagation();
+      var tokenInput = document.querySelector("input[name='csrf_token']");
+      var body = "csrf_token=" + encodeURIComponent(tokenInput ? tokenInput.value : "");
+      send.disabled = true;
+      fetch(send.getAttribute("data-href"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Accept": "application/json"
+        },
+        body: body,
+        credentials: "same-origin"
+      }).then(function (response) {
+        return response.json();
+      }).then(function (data) {
+        var items = Array.isArray(data) ? data : [data];
+        var text = items.map(function (item) { return item.message || ""; }).filter(Boolean).join(" ");
+        send.textContent = text || "Sent";
+      }).catch(function () {
+        send.textContent = "Could not send this book.";
+      });
+      return;
+    }
     var button = event.target.closest(".library-scroll");
     if (!button) {
       return;

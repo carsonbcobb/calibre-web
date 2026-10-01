@@ -28,5 +28,7 @@ def register_library_ui(app):
     app.jinja_env.globals["library_read_bits"] = read_bits
     app.jinja_env.globals["library_rating_bits"] = rating_bits
     from .comments import comments_for_book, user_name
+    from .send import send_choice
     app.jinja_env.globals["library_comments"] = comments_for_book
     app.jinja_env.globals["library_comment_author"] = user_name
+    app.jinja_env.globals["library_send_choice"] = send_choice

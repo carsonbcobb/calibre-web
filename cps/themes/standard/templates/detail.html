@@ -18,8 +18,16 @@
             </div>
         </div>
         <div class="col-sm-9 col-lg-9 book-meta">
-            <div class="btn-toolbar" role="toolbar">
-                <div class="btn-group" role="group" aria-label="Download, send to eReader, reading">
+            <div class="btn-toolbar library-book-actions" role="toolbar">
+                {% if current_user.role_download() and current_user.kindle_mail and entry.email_share_list %}
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    {% set send = entry.email_share_list[0] %}
+                    <button type="button" id="sendbtn" class="btn library-send-kindle sendbtn-form" data-href="{{ url_for('web.send_to_ereader', book_id=entry.id, book_format=send['format'], convert=send['convert']) }}">
+                        {{ _('Send to Kindle') }}
+                    </button>
+                {% endif %}
+                {% if current_user.role_admin() %}
+                <div class="btn-group library-admin-actions" role="group" aria-label="More actions">
                     {% if current_user.role_download() %}
                         {% if entry.data|length %}
                             <div class="btn-group" role="group">
@@ -50,31 +58,6 @@
                                     </ul>
                                 {% endif %}
                             </div>
-                        {% endif %}
-                        {% if current_user.kindle_mail and entry.email_share_list %}
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            {% if entry.email_share_list.__len__() == 1 %}
-                                <div class="btn-group" role="group">
-                                    <button id="sendbtn" class="btn btn-primary sendbtn-form" data-href="{{url_for('web.send_to_ereader', book_id=entry.id, book_format=entry.email_share_list[0]['format'], convert=entry.email_share_list[0]['convert'])}}">
-                                        <span class="glyphicon glyphicon-send"></span> {{entry.email_share_list[0]['text']}}
-                                    </button>
-                                </div>
-                            {% else %}
-                                <div class="btn-group" role="group">
-                                    <button id="sendbtn2" type="button" class="btn btn-primary dropdown-toggle"
-                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                        <span class="glyphicon glyphicon-send"></span>{{ _('Send to eReader') }}
-                                        <span class="caret"></span>
-                                    </button>
-                                    <ul class="dropdown-menu" aria-labelledby="send-to-ereader">
-                                        {% for format in entry.email_share_list %}
-                                            <li>
-                                                <a class="sendbtn-form" data-href="{{url_for('web.send_to_ereader', book_id=entry.id, book_format=format['format'], convert=format['convert'])}}">{{ format['text'] }}</a>
-                                            </li>
-                                        {% endfor %}
-                                    </ul>
-                                </div>
-                            {% endif %}
                         {% endif %}
                     {% endif %}
                     {% if entry.reader_list and current_user.role_viewer() %}
@@ -130,6 +113,7 @@
                         </div>
                     {% endif %}
                 </div>
+                {% endif %}
             </div>
             <h2 id="title">{{ entry.title }}</h2>
             {% if library_read_bits(entry.id) %}
@@ -315,7 +299,7 @@
 
             <div class="more-stuff">
 
-                {% if current_user.is_authenticated %}
+                {% if current_user.is_authenticated and current_user.role_admin() %}
                     {% if current_user.shelf.all() or g.shelves_access %}
                         <div id="shelf-actions" class="btn-toolbar" role="toolbar">
                             <div class="btn-group dropup" role="group" aria-label="Add to shelves">
@@ -364,7 +348,7 @@
                     {% endif %}
 
                 {% endif %}
-                {% if current_user.role_edit() %}
+                {% if current_user.role_admin() and current_user.role_edit() %}
                     <div class="col-sm-12">
                         <div class="btn-group" role="group" aria-label="Edit/Delete book">
                             <a href="{{ url_for('edit-book.show_edit_book', book_id=entry.id) }}"
