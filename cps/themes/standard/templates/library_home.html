@@ -1,0 +1,84 @@
+{% extends theme("layout.html") %}
+{% import 'library_card.html' as cards %}
+{% block body %}
+<div class="library-home">
+  {% if not recent_books and not genre_rows and not collections %}
+  <div class="library-home-empty">
+    <h2>{{ _('Your library is empty') }}</h2>
+    <p>{{ _('Books you add in Calibre will show up here.') }}</p>
+  </div>
+  {% endif %}
+
+  {% if recent_books %}
+  <section class="library-row-wrap" aria-labelledby="recent-heading">
+    <div class="library-row-head">
+      <h2 id="recent-heading">{{ _('Recently Added') }}</h2>
+      <div class="library-row-actions">
+        <a class="library-see-all" href="{{ url_for('web.books_list', data='newest', sort_param='stored') }}">{{ _('See all') }}</a>
+        <button type="button" class="library-scroll" data-dir="-1" aria-label="{{ _('Scroll back') }}">&#8249;</button>
+        <button type="button" class="library-scroll" data-dir="1" aria-label="{{ _('Scroll forward') }}">&#8250;</button>
+      </div>
+    </div>
+    {{ cards.scroller('row-recent', recent_books) }}
+  </section>
+  {% endif %}
+
+  {% if continue_books %}
+  <section class="library-row-wrap" aria-labelledby="continue-heading">
+    <div class="library-row-head">
+      <h2 id="continue-heading">{{ _('Continue Series') }}</h2>
+      <div class="library-row-actions">
+        <button type="button" class="library-scroll" data-dir="-1" aria-label="{{ _('Scroll back') }}">&#8249;</button>
+        <button type="button" class="library-scroll" data-dir="1" aria-label="{{ _('Scroll forward') }}">&#8250;</button>
+      </div>
+    </div>
+    {{ cards.scroller('row-continue', continue_books) }}
+  </section>
+  {% endif %}
+
+  {% for row in genre_rows %}
+  <section class="library-row-wrap" aria-labelledby="genre-{{ row.tag.id }}">
+    <div class="library-row-head">
+      <h2 id="genre-{{ row.tag.id }}">
+        <a href="{{ url_for('web.books_list', data='category', sort_param='stored', book_id=row.tag.id) }}">{{ row.tag.name }}</a>
+      </h2>
+      <div class="library-row-actions">
+        <button type="button" class="library-scroll" data-dir="-1" aria-label="{{ _('Scroll back') }}">&#8249;</button>
+        <button type="button" class="library-scroll" data-dir="1" aria-label="{{ _('Scroll forward') }}">&#8250;</button>
+      </div>
+    </div>
+    {{ cards.scroller('row-genre-' ~ row.tag.id, row.books) }}
+  </section>
+  {% endfor %}
+
+  {% if collections %}
+  <section class="library-row-wrap" aria-labelledby="collections-heading">
+    <div class="library-row-head">
+      <h2 id="collections-heading">{{ _('Collections') }}</h2>
+      <div class="library-row-actions">
+        <button type="button" class="library-scroll" data-dir="-1" aria-label="{{ _('Scroll back') }}">&#8249;</button>
+        <button type="button" class="library-scroll" data-dir="1" aria-label="{{ _('Scroll forward') }}">&#8250;</button>
+      </div>
+    </div>
+    <div class="library-row" id="row-collections">
+      <div class="library-row-scroller">
+        {% for card in collections %}
+        <a class="library-card library-collection" href="{{ url_for('shelf.show_shelf', shelf_id=card.shelf.id) }}">
+          {% if card.book %}
+            {{ cards.cover(card.book) }}
+          {% else %}
+            <span class="library-card-cover library-card-cover-empty"></span>
+          {% endif %}
+          <span class="library-card-title">{{ card.shelf.name }}</span>
+          <span class="library-card-author">{{ card.count }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
+{% block js %}
+<script src="{{ url_for('static', filename='js/library_ui.js') }}"></script>
+{% endblock %}

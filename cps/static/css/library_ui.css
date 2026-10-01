@@ -229,3 +229,175 @@ body.login .col-sm-10 {
     border-radius: 14px;
   }
 }
+
+/* Homepage carousels */
+.library-home {
+  padding-bottom: 24px;
+}
+
+.library-home-empty {
+  padding: 48px 8px;
+}
+
+.library-row-wrap {
+  margin: 8px 0 22px;
+}
+
+.library-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 4px 8px;
+}
+
+.library-row-head h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.library-row-head h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.library-row-head h2 a:hover {
+  color: #e50914;
+}
+
+.library-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.library-see-all {
+  margin-right: 6px;
+  color: #666;
+  font-size: 13px;
+}
+
+.library-scroll {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(20, 20, 20, 0.72);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.library-scroll:hover,
+.library-scroll:focus {
+  background: #e50914;
+  color: #fff;
+}
+
+.library-row-scroller {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: 6px 4px 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.library-row-scroller::-webkit-scrollbar {
+  height: 8px;
+}
+
+.library-row-scroller::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 99px;
+}
+
+.library-card {
+  flex: 0 0 168px;
+  scroll-snap-align: start;
+  color: inherit;
+  text-decoration: none;
+}
+
+.library-card:hover,
+.library-card:focus {
+  color: inherit;
+  text-decoration: none;
+}
+
+.library-card-cover {
+  display: block;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #d7d7d7;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.library-card-cover img {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.28s ease;
+}
+
+.library-card:hover .library-card-cover img,
+.library-card:focus .library-card-cover img {
+  transform: scale(1.06);
+}
+
+.library-card-cover-empty {
+  aspect-ratio: 2 / 3;
+  background: linear-gradient(160deg, #3a3a3a, #1c1c1c);
+}
+
+.library-card-title,
+.library-card-author {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.library-card-title {
+  margin-top: 8px;
+  font-weight: 600;
+  color: #222;
+}
+
+.library-card-author {
+  color: #777;
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .library-card {
+    flex-basis: 42vw;
+  }
+
+  .library-row-head h2 {
+    font-size: 18px;
+  }
+
+  .library-scroll {
+    display: none;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .library-card-title {
+    color: #f2f2f2;
+  }
+
+  .library-card-author,
+  .library-see-all {
+    color: #bdbdbd;
+  }
+
+  .library-card-cover {
+    background: #2a2a2a;
+  }
+}

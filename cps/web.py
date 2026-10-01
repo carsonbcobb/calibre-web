@@ -807,6 +807,9 @@ def render_archived_books(page, sort_param):
 @web.route('/page/<int:page>')
 @login_required_if_no_ano
 def index(page):
+    if int(page) == 1 and request.args.get("view") != "grid":
+        from .library_ui.home import render_home
+        return render_home()
     sort_param = (request.args.get('sort') or 'stored').lower()
     return render_books_list("newest", sort_param, 1, page)
 

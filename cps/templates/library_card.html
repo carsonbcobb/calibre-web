@@ -1,0 +1,28 @@
+{% import 'image.html' as image %}
+{% macro cover(book) -%}
+<span class="library-card-cover">
+  {{ image.book_cover(book) }}
+</span>
+{%- endmacro %}
+
+{% macro book_card(book) -%}
+<a class="library-card" href="{{ url_for('web.show_book', book_id=book.id) }}">
+  {{ cover(book) }}
+  <span class="library-card-title">{{ book.title }}</span>
+  <span class="library-card-author">
+    {% for author in book.authors %}
+      {{ author.name.replace('|', ',') }}{% if not loop.last %}, {% endif %}
+    {% endfor %}
+  </span>
+</a>
+{%- endmacro %}
+
+{% macro scroller(row_id, books) -%}
+<div class="library-row" id="{{ row_id }}">
+  <div class="library-row-scroller">
+    {% for book in books %}
+      {{ book_card(book) }}
+    {% endfor %}
+  </div>
+</div>
+{%- endmacro %}
