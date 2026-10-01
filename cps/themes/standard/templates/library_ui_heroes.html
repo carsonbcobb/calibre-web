@@ -1,0 +1,97 @@
+{% extends theme("layout.html") %}
+{% block body %}
+<div class="col-sm-12 col-md-10 col-lg-8">
+  <h2>{{ _('Featured') }}</h2>
+  <p class="text-muted">{{ _('These show at the top of the home page. Add more than one and they take turns.') }}</p>
+
+  {% if heroes %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>{{ _('Order') }}</th>
+        <th>{{ _('Type') }}</th>
+        <th>{{ _('Headline') }}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for hero in heroes %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{% if hero.kind == 'collection' %}{{ _('Collection') }}{% else %}{{ _('Book') }}{% endif %} {{ hero.target_id }}</td>
+        <td>{{ hero.headline or _('Using the title') }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('library_ui.heroes') }}" class="library-inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="hero_id" value="{{ hero.id }}">
+            <button class="btn btn-default btn-xs" name="action" value="up" type="submit">{{ _('Move up') }}</button>
+            <button class="btn btn-default btn-xs" name="action" value="down" type="submit">{{ _('Move down') }}</button>
+            <button class="btn btn-default btn-xs" name="action" value="remove" type="submit">{{ _('Remove') }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>{{ _('Nothing is featured yet.') }}</p>
+  {% endif %}
+
+  <h3>{{ _('Add a featured item') }}</h3>
+  <form method="GET" action="{{ url_for('library_ui.heroes') }}" class="form-inline" style="margin-bottom: 12px;">
+    <label class="sr-only" for="hero_query">{{ _('Find a book') }}</label>
+    <input class="form-control" id="hero_query" name="q" value="{{ query }}" placeholder="{{ _('Find a book') }}">
+    <button class="btn btn-default" type="submit">{{ _('Find') }}</button>
+  </form>
+
+  <form method="POST" action="{{ url_for('library_ui.heroes') }}" id="add-hero">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="add">
+    <input type="hidden" name="q" value="{{ query }}">
+    <div class="form-group">
+      <label>{{ _('What to feature') }}</label>
+      <div>
+        <label class="radio-inline"><input type="radio" name="kind" value="book" checked> {{ _('A book') }}</label>
+        <label class="radio-inline"><input type="radio" name="kind" value="collection"> {{ _('A collection') }}</label>
+      </div>
+    </div>
+    {% if matches %}
+    <div class="form-group">
+      <label>{{ _('Matching books') }}</label>
+      {% for book in matches %}
+      <div class="radio">
+        <label>
+          <input type="radio" name="book_id" value="{{ book.id }}">
+          {{ book.title }}
+          {% if book.authors %}
+            <span class="text-muted">{{ book.authors[0].name.replace('|', ',') }}</span>
+          {% endif %}
+        </label>
+      </div>
+      {% endfor %}
+    </div>
+    {% elif query %}
+    <p class="text-muted">{{ _('No books matched that search.') }}</p>
+    {% endif %}
+    <div class="form-group">
+      <label for="shelf_id">{{ _('Collection') }}</label>
+      <select class="form-control" id="shelf_id" name="shelf_id">
+        <option value="">{{ _('Choose a collection') }}</option>
+        {% for shelf in shelves %}
+        <option value="{{ shelf.id }}">{{ shelf.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="headline">{{ _('Headline') }}</label>
+      <input class="form-control" id="headline" name="headline" maxlength="200" placeholder="{{ _('Optional') }}">
+    </div>
+    <div class="form-group">
+      <label for="blurb">{{ _('Blurb') }}</label>
+      <textarea class="form-control" id="blurb" name="blurb" rows="3" maxlength="1000" placeholder="{{ _('Optional') }}"></textarea>
+    </div>
+    <button class="btn btn-primary" type="submit" id="save_hero">{{ _('Save featured item') }}</button>
+    <a class="btn btn-default" href="{{ url_for('admin.admin') }}">{{ _('Back to Admin') }}</a>
+  </form>
+</div>
+{% endblock %}

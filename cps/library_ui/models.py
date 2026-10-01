@@ -10,7 +10,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Integer, LargeBinary, String, Text
 try:
     from sqlalchemy.orm import declarative_base
 except ImportError:
@@ -45,3 +45,20 @@ class LibraryAsset(Base):
 
     def __repr__(self):
         return "<LibraryAsset %r>" % self.kind
+
+
+class LibraryHero(Base):
+    """Featured book or collection shown at the top of the home page."""
+
+    __tablename__ = "library_ui_hero"
+
+    id = Column(Integer, primary_key=True)
+    kind = Column(String(16), nullable=False, default="book")
+    target_id = Column(Integer, nullable=False)
+    headline = Column(String(200), default="")
+    blurb = Column(Text, default="")
+    sort_order = Column(Integer, default=0)
+    enabled = Column(Boolean, default=True)
+
+    def __repr__(self):
+        return "<LibraryHero %s %s>" % (self.kind, self.target_id)

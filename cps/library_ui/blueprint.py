@@ -16,6 +16,7 @@ from ..render_template import render_title_template
 from ..usermanagement import user_login_required
 from .branding import delete_asset, get_asset, save_upload
 from .css_sanitize import sanitize_css
+from .heroes import add_hero, delete_hero, list_heroes, move_hero, search_books, shelf_choices
 from .login_collage import book_for_slot, cover_response
 from .store import get_setting, set_setting
 
@@ -86,4 +87,39 @@ def branding():
         "library_ui_branding.html",
         title=_("Logo and Favicon"),
         page="adminbrand",
+    )
+
+
+@library_ui_bp.route("/admin/library/heroes", methods=["GET", "POST"])
+@user_login_required
+@admin_required
+def heroes():
+    if request.method == "POST":
+        action = request.form.get("action", "")
+        if action == "add":
+            kind = request.form.get("kind", "book")
+            target = request.form.get("book_id") if kind == "book" else request.form.get("shelf_id")
+            ok = add_hero(kind, target, request.form.get("headline", ""), request.form.get("blurb", ""))
+            if ok:
+                flash(_("Featured item saved."), category="success")
+            else:
+                flash(_("Choose a book or a collection first."), category="error")
+        elif action == "remove":
+            delete_hero(request.form.get("hero_id", "0"))
+            flash(_("Featured item removed."), category="success")
+        elif action == "up":
+            move_hero(request.form.get("hero_id", "0"), -1)
+        elif action == "down":
+            move_hero(request.form.get("hero_id", "0"), 1)
+        return redirect(url_for("library_ui.heroes", q=request.form.get("q", "")))
+
+    query = request.args.get("q", "")
+    return render_title_template(
+        "library_ui_heroes.html",
+        title=_("Featured"),
+        page="adminhero",
+        heroes=list_heroes(),
+        matches=search_books(query),
+        shelves=shelf_choices(),
+        query=query,
     )

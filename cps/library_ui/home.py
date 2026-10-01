@@ -12,6 +12,7 @@ from flask_babel import gettext as _
 from sqlalchemy import func, or_
 
 from .logger_helper import log
+from .heroes import hero_slides
 
 
 def render_home():
@@ -25,6 +26,7 @@ def render_home():
         continue_books=continue_series_books(),
         genre_rows=genre_rows(),
         collections=collection_cards(),
+        heroes=hero_slides(),
     )
 
 
