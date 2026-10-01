@@ -8,6 +8,9 @@
         alt="{{ image_alt }}"
         loading="lazy"
     />
+    {% if book.series %}
+    <span class="library-series-badge">{{ _('Book %(num)s of %(name)s', num=book.series_index|formatfloat(2), name=book.series[0].name) }}</span>
+    {% endif %}
 {%- endmacro %}
 
 {% macro series(series, alt=None) -%}

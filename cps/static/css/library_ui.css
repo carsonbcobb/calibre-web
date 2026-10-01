@@ -330,6 +330,7 @@ body.login .col-sm-10 {
 
 .library-card-cover {
   display: block;
+  position: relative;
   overflow: hidden;
   border-radius: 10px;
   background: #d7d7d7;
@@ -577,4 +578,38 @@ body.login .col-sm-10 {
   .library-hero-copy h2 {
     font-size: 28px;
   }
+}
+
+.library-card.is-current .library-card-cover {
+  outline: 3px solid #e50914;
+  outline-offset: 2px;
+}
+
+.library-series-list {
+  margin-top: 12px;
+}
+
+.library-series-list h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.img,
+.cover {
+  position: relative;
+}
+
+.library-series-badge {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  z-index: 2;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(12, 12, 12, 0.82);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.3;
+  pointer-events: none;
 }

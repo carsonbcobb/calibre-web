@@ -155,8 +155,23 @@
                 </div>
             {% endif %}
             {% if entry.series|length > 0 %}
-                <p>{{ _("Book %(index)s of %(range)s", index=entry.series_index|formatfloat(2), range=(url_for('web.books_list', data='series', sort_param='stored', book_id=entry.series[0].id)|escapedlink(entry.series[0].name))|safe) }}</p>
-
+                <p class="library-series-line">{{ _("Book %(index)s of %(range)s", index=entry.series_index|formatfloat(2), range=(url_for('web.books_list', data='series', sort_param='stored', book_id=entry.series[0].id)|escapedlink(entry.series[0].name))|safe) }}</p>
+                {% if series_books %}
+                <div class="library-series-list">
+                  <h3>{{ _('In this series') }}</h3>
+                  <div class="library-row-scroller">
+                    {% for book in series_books %}
+                    <a class="library-card{% if book.id == entry.id %} is-current{% endif %}" href="{{ url_for('web.show_book', book_id=book.id) }}">
+                      <span class="library-card-cover">
+                        <img src="{{ url_for('web.get_cover', book_id=book.id, resolution='md') }}" alt="{{ book.title }}" loading="lazy">
+                      </span>
+                      <span class="library-card-title">{{ _('Book %(num)s', num=library_series_number(book.series_index)) }}</span>
+                      <span class="library-card-author">{{ book.title }}</span>
+                    </a>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endif %}
             {% endif %}
 
             {% if entry.languages|length > 0 %}

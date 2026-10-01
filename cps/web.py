@@ -1664,12 +1664,14 @@ def show_book(book_id):
             if media_format.format.lower() in constants.EXTENSIONS_AUDIO:
                 entry.audio_entries.append(media_format.format.lower())
 
+        from .library_ui.series_books import books_in_series
         return render_title_template('detail.html',
                                      entry=entry,
                                      cc=cc,
                                      is_xhr=request.headers.get('X-Requested-With') == 'XMLHttpRequest',
                                      title=entry.title,
                                      books_shelfs=book_in_shelves,
+                                     series_books=books_in_series(entry),
                                      page="book")
     else:
         log.debug("Selected book is unavailable. File does not exist or is not accessible")
