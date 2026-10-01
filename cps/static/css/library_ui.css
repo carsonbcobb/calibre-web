@@ -692,3 +692,140 @@ body.login .col-sm-10 {
 .library-comment-new {
   margin-top: 16px;
 }
+
+body:not(.login) {
+  font-family: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+  line-height: 1.45;
+}
+
+.library-topnav {
+  background: #141414;
+  border: 0;
+  margin-bottom: 18px;
+}
+
+.library-topnav .navbar-brand,
+.library-topnav .navbar-nav > li > a {
+  color: #f7f7f7;
+}
+
+.library-topnav .navbar-brand:hover,
+.library-topnav .navbar-brand:focus,
+.library-topnav .navbar-nav > li > a:hover,
+.library-topnav .navbar-nav > li > a:focus {
+  color: #fff;
+  background: transparent;
+}
+
+.library-topnav .navbar-toggle .icon-bar {
+  background: #fff;
+}
+
+.library-search {
+  position: relative;
+}
+
+.library-search .form-control {
+  min-width: 240px;
+  height: 36px;
+}
+
+.library-suggest {
+  position: absolute;
+  z-index: 40;
+  top: 100%;
+  left: 0;
+  width: min(360px, 80vw);
+  margin-top: 6px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.library-suggest-item {
+  display: block;
+  padding: 10px 12px;
+  color: #222;
+  text-decoration: none;
+}
+
+.library-suggest-item:hover,
+.library-suggest-item:focus,
+.library-suggest-item.is-active {
+  background: #f4f4f4;
+  color: #111;
+  text-decoration: none;
+}
+
+.library-suggest-title,
+.library-suggest-author {
+  display: block;
+}
+
+.library-suggest-title {
+  font-weight: 600;
+}
+
+.library-suggest-author {
+  color: #777;
+  font-size: 12px;
+}
+
+.library-row {
+  margin-bottom: 8px;
+}
+
+@media (max-width: 768px) {
+  .library-search .form-control {
+    min-width: 0;
+    width: 46vw;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  body:not(.login) {
+    background: #121212;
+    color: #f2f2f2;
+  }
+
+  body:not(.login) .navigation a,
+  body:not(.login) .book-meta a,
+  body:not(.login) .library-card-link {
+    color: #f3d48a;
+  }
+
+  .library-suggest,
+  body:not(.login) .form-control {
+    background: #1e1e1e;
+    color: #f5f5f5;
+    border-color: #444;
+  }
+
+  .library-suggest-item,
+  .library-suggest-title {
+    color: #f5f5f5;
+  }
+
+  .library-suggest-author,
+  .library-card-author,
+  .library-card-time,
+  .library-read-time {
+    color: #bdbdbd;
+  }
+
+  .library-suggest-item:hover,
+  .library-suggest-item:focus,
+  .library-suggest-item.is-active {
+    background: #2c2c2c;
+    color: #fff;
+  }
+
+  .library-comment {
+    border-top-color: #333;
+  }
+
+  .library-card-title {
+    color: #f2f2f2;
+  }
+}

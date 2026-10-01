@@ -8,12 +8,12 @@
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 
-from flask import Blueprint, abort, flash, make_response, redirect, request, url_for
+from flask import Blueprint, abort, flash, jsonify, make_response, redirect, request, url_for
 from flask_babel import gettext as _
 
 from ..admin import admin_required
 from ..render_template import render_title_template
-from ..usermanagement import user_login_required
+from ..usermanagement import login_required_if_no_ano, user_login_required
 from ..cw_login import current_user
 from .comments import (
     add_comment,
@@ -32,6 +32,23 @@ from .ratings.service import fetch_missing, hardcover_token, save_hardcover_toke
 from .store import get_setting, set_setting
 
 library_ui_bp = Blueprint("library_ui", __name__)
+
+
+@library_ui_bp.route("/library/suggest")
+@login_required_if_no_ano
+def suggest_books():
+    query = (request.args.get("q") or "").strip()
+    books = search_books(query, limit=8)
+    results = []
+    for book in books:
+        authors = ", ".join(author.name.replace("|", ", ") for author in book.authors)
+        results.append({
+            "id": book.id,
+            "title": book.title,
+            "author": authors,
+            "url": url_for("web.show_book", book_id=book.id),
+        })
+    return jsonify(results)
 
 
 @library_ui_bp.route("/admin/library/css", methods=["GET", "POST"])

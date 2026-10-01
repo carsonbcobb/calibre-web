@@ -7,6 +7,7 @@
         src="{{ url_for('web.get_cover', book_id=book.id, resolution='og', c=book|last_modified) }}"
         alt="{{ image_alt }}"
         loading="lazy"
+        decoding="async"
     />
     {% if book.series %}
     <span class="library-series-badge">{{ _('Book %(num)s of %(name)s', num=book.series_index|formatfloat(2), name=book.series[0].name) }}</span>
@@ -21,5 +22,6 @@
         src="{{ url_for('web.get_series_cover', series_id=series.id, resolution='og', c='day'|cache_timestamp) }}"
         alt="{{ title }}"
         loading="lazy"
+        decoding="async"
     />
 {%- endmacro %}
