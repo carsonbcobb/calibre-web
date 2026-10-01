@@ -16,6 +16,7 @@ from ..render_template import render_title_template
 from ..usermanagement import user_login_required
 from .branding import delete_asset, get_asset, save_upload
 from .css_sanitize import sanitize_css
+from .login_collage import book_for_slot, cover_response
 from .store import get_setting, set_setting
 
 library_ui_bp = Blueprint("library_ui", __name__)
@@ -49,6 +50,14 @@ def brand_asset(kind):
     response.headers["Cache-Control"] = "public, max-age=86400"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@library_ui_bp.route("/library/login-cover/<int:slot>")
+def login_cover(slot):
+    book = book_for_slot(slot)
+    if book is None:
+        abort(404)
+    return cover_response(book)
 
 
 @library_ui_bp.route("/admin/library/branding", methods=["GET", "POST"])
