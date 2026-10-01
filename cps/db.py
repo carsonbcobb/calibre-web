@@ -816,6 +816,15 @@ class CalibreDB:
         return and_(lang_filter, pos_content_tags_filter, ~neg_content_tags_filter,
                     pos_content_cc_filter, ~neg_content_cc_filter, archived_filter)
 
+    def _genre_clause(self):
+        """Optional tag filter from the library genre bar. No effect when nothing is selected."""
+        try:
+            from .library_ui.genres import genre_clause
+            clause = genre_clause()
+            return clause if clause is not None else true()
+        except Exception:
+            return true()
+
     def generate_linked_query(self, config_read_column, database):
         if not config_read_column:
             query = (self.session.query(database, ub.ArchivedBook.is_archived, ub.ReadBook.read_status)
@@ -866,6 +875,7 @@ class CalibreDB:
         if current_user.show_detail_random():
             random_query = self.generate_linked_query(config_read_column, database)
             randm = (random_query.filter(self.common_filters(allow_show_archived))
+                     .filter(self._genre_clause())
                      .order_by(func.random())
                      .limit(self.config.config_random_books).all())
         else:
@@ -892,7 +902,8 @@ class CalibreDB:
                 indx -= 1
                 element += 1
         query = query.filter(db_filter)\
-            .filter(self.common_filters(allow_show_archived))
+            .filter(self.common_filters(allow_show_archived))\
+            .filter(self._genre_clause())
         entries = list()
         pagination = list()
         try:
@@ -1018,7 +1029,7 @@ class CalibreDB:
 
         # If FTS5 found results, use those IDs
         if fts_ids:
-            return base_query.filter(Books.id.in_(fts_ids))
+            return base_query.filter(Books.id.in_(fts_ids)).filter(self._genre_clause())
 
         # Fallback to traditional search with optimized subqueries
         author_terms = re.split("[, ]+", term)
@@ -1056,7 +1067,7 @@ class CalibreDB:
                             'custom_column_' + str(c.id)).any(
                         func.lower(cc_classes[c.id].value).ilike("%" + term + "%")))
 
-        return base_query.filter(or_(*filter_expression))
+        return base_query.filter(or_(*filter_expression)).filter(self._genre_clause())
 
     def get_cc_columns(self, config, filter_config_custom_read=False):
         tmp_cc = self.session.query(CustomColumns).filter(CustomColumns.datatype.notin_(cc_exceptions)).all()

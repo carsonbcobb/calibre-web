@@ -1,6 +1,7 @@
 {% import 'image.html' as image %}
 {% extends theme("layout.html") %}
 {% block body %}
+{% include 'library_genres.html' %}
 {% if current_user.show_detail_random() and page != "discover" %}
 <div class="discover random-books">
   <h2 class="random-books">{{_('Discover (Random Books)')}}</h2>

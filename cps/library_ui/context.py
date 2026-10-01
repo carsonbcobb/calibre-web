@@ -10,6 +10,7 @@
 
 from .branding import asset_urls
 from .css_sanitize import sanitize_css
+from .genres import bar_context
 from .login_collage import collage_ids
 from .store import get_setting
 
@@ -28,6 +29,7 @@ def library_context():
         "library_logo_url": urls.get("logo") or "",
         "library_favicon_url": urls.get("favicon") or "",
         "library_login_covers": _login_cover_urls(),
+        **bar_context(),
     }
 
 

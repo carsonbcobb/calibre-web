@@ -1,6 +1,7 @@
 {% import 'image.html' as image %}
 {% extends theme("layout.html") %}
 {% block body %}
+{% include 'library_genres.html' %}
 <div class="discover">
     {% if entries|length < 1 %}
       <h2>{{_('No Results Found')}}</h2>

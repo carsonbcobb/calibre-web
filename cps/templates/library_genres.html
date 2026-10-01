@@ -1,0 +1,11 @@
+{% if library_genres %}
+<nav class="library-genres" aria-label="{{ _('Genres') }}">
+  <span class="library-genres-label">{{ _('Genres') }}</span>
+  {% for genre in library_genres %}
+  <a class="library-genre{% if genre.selected %} is-on{% endif %}" href="{{ genre.href }}">{{ genre.name }}</a>
+  {% endfor %}
+  {% if library_genre_clear %}
+  <a class="library-genre-clear" href="{{ library_genre_clear }}">{{ _('Clear genres') }}</a>
+  {% endif %}
+</nav>
+{% endif %}
