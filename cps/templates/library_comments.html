@@ -1,0 +1,70 @@
+<section class="library-comments" id="comments">
+  <h3>{{ _('Comments and reviews') }}</h3>
+  {% set notes = library_comments(entry.id) %}
+  {% if notes %}
+    {% for note in notes %}
+    <article class="library-comment">
+      <header>
+        <strong>{{ library_comment_author(note.user_id) }}</strong>
+        {% if note.stars %}
+        <span class="library-comment-stars">{{ note.stars }} / 5</span>
+        {% endif %}
+      </header>
+      <p>{{ note.body }}</p>
+      {% if current_user.is_authenticated and (current_user.id == note.user_id or current_user.role_admin()) %}
+      <form method="POST" action="{{ url_for('library_ui.edit_book_comment', comment_id=note.id) }}" class="library-comment-edit">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+          <label class="sr-only" for="edit-body-{{ note.id }}">{{ _('Comment') }}</label>
+          <textarea class="form-control" id="edit-body-{{ note.id }}" name="body" rows="3">{{ note.body }}</textarea>
+        </div>
+        <div class="form-group">
+          <label for="edit-stars-{{ note.id }}">{{ _('Stars') }}</label>
+          <select class="form-control" id="edit-stars-{{ note.id }}" name="stars">
+            <option value="" {% if not note.stars %}selected{% endif %}>{{ _('No stars') }}</option>
+            {% for n in range(1, 6) %}
+            <option value="{{ n }}" {% if note.stars == n %}selected{% endif %}>{{ n }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="btn btn-default btn-sm" type="submit">{{ _('Save comment') }}</button>
+      </form>
+      <form method="POST" action="{{ url_for('library_ui.delete_book_comment', comment_id=note.id) }}" class="library-inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-default btn-sm" type="submit">{{ _('Delete') }}</button>
+      </form>
+      {% endif %}
+      {% if current_user.is_authenticated and current_user.role_admin() %}
+      <form method="POST" action="{{ url_for('library_ui.hide_book_comment', comment_id=note.id) }}" class="library-inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="hidden" value="1">
+        <button class="btn btn-default btn-sm" type="submit">{{ _('Hide') }}</button>
+      </form>
+      {% endif %}
+    </article>
+    {% endfor %}
+  {% else %}
+  <p class="text-muted">{{ _('No comments yet.') }}</p>
+  {% endif %}
+
+  {% if current_user.is_authenticated and not current_user.is_anonymous %}
+  <form method="POST" action="{{ url_for('library_ui.add_book_comment', book_id=entry.id) }}" class="library-comment-new">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+      <label for="new-comment">{{ _('Write a comment') }}</label>
+      <textarea class="form-control" id="new-comment" name="body" rows="4" maxlength="2000"></textarea>
+    </div>
+    <div class="form-group">
+      <label for="new-stars">{{ _('Stars') }}</label>
+      <select class="form-control" id="new-stars" name="stars">
+        <option value="">{{ _('No stars') }}</option>
+        {% for n in range(1, 6) %}
+        <option value="{{ n }}">{{ n }}</option>
+        {% endfor %}
+      </select>
+      <p class="help-block">{{ _('Stars are optional.') }}</p>
+    </div>
+    <button class="btn btn-primary" type="submit">{{ _('Save comment') }}</button>
+  </form>
+  {% endif %}
+</section>

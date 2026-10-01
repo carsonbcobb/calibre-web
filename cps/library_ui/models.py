@@ -95,3 +95,21 @@ class LibraryRating(Base):
 
     def __repr__(self):
         return "<LibraryRating %s %s>" % (self.book_id, self.provider)
+
+
+class LibraryComment(Base):
+    """Reader comment stored only in app.db."""
+
+    __tablename__ = "library_ui_comment"
+
+    id = Column(Integer, primary_key=True)
+    book_id = Column(Integer, nullable=False, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    body = Column(Text, default="")
+    stars = Column(Integer)
+    hidden = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def __repr__(self):
+        return "<LibraryComment %s>" % self.id

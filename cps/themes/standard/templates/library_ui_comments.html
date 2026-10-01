@@ -1,0 +1,43 @@
+{% extends theme("layout.html") %}
+{% block body %}
+<div class="col-sm-12">
+  <h2>{{ _('Comments') }}</h2>
+  <p class="text-muted">{{ _('Hide a comment to take it off the book page. Delete removes it.') }}</p>
+  {% if comments %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>{{ _('Book') }}</th>
+        <th>{{ _('Reader') }}</th>
+        <th>{{ _('Comment') }}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for note in comments %}
+      <tr>
+        <td><a href="{{ url_for('web.show_book', book_id=note.book_id) }}">{{ note.book_id }}</a></td>
+        <td>{{ comment_author(note.user_id) }}{% if note.hidden %} ({{ _('hidden') }}){% endif %}</td>
+        <td>{{ note.body }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('library_ui.hide_book_comment', comment_id=note.id) }}" class="library-inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="admin">
+            <input type="hidden" name="hidden" value="{{ 0 if note.hidden else 1 }}">
+            <button class="btn btn-default btn-xs" type="submit">{% if note.hidden %}{{ _('Show') }}{% else %}{{ _('Hide') }}{% endif %}</button>
+          </form>
+          <form method="POST" action="{{ url_for('library_ui.delete_book_comment', comment_id=note.id) }}" class="library-inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-default btn-xs" type="submit">{{ _('Delete') }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>{{ _('No comments yet.') }}</p>
+  {% endif %}
+  <a class="btn btn-default" href="{{ url_for('admin.admin') }}">{{ _('Back to Admin') }}</a>
+</div>
+{% endblock %}

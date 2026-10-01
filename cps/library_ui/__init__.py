@@ -27,3 +27,6 @@ def register_library_ui(app):
     app.context_processor(library_context)
     app.jinja_env.globals["library_read_bits"] = read_bits
     app.jinja_env.globals["library_rating_bits"] = rating_bits
+    from .comments import comments_for_book, user_name
+    app.jinja_env.globals["library_comments"] = comments_for_book
+    app.jinja_env.globals["library_comment_author"] = user_name

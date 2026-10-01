@@ -14,6 +14,15 @@ from flask_babel import gettext as _
 from ..admin import admin_required
 from ..render_template import render_title_template
 from ..usermanagement import user_login_required
+from ..cw_login import current_user
+from .comments import (
+    add_comment,
+    delete_comment,
+    recent_comments,
+    set_hidden,
+    update_comment,
+    user_name,
+)
 from .branding import delete_asset, get_asset, save_upload
 from .css_sanitize import sanitize_css
 from .heroes import add_hero, delete_hero, list_heroes, move_hero, search_books, shelf_choices
@@ -148,4 +157,80 @@ def scan_reading():
         title=_("Reading time"),
         page="adminscan",
         hardcover_token=hardcover_token(),
+    )
+
+
+def _back_to_book(book_id):
+    return redirect(url_for("web.show_book", book_id=book_id))
+
+
+@library_ui_bp.route("/library/comment/<int:book_id>", methods=["POST"])
+@user_login_required
+def add_book_comment(book_id):
+    row = add_comment(book_id, current_user.id, request.form.get("body", ""), request.form.get("stars", ""))
+    if row is None:
+        flash(_("Write a comment first."), category="error")
+    else:
+        flash(_("Comment saved."), category="success")
+    return _back_to_book(book_id)
+
+
+@library_ui_bp.route("/library/comment/<int:comment_id>/edit", methods=["POST"])
+@user_login_required
+def edit_book_comment(comment_id):
+    row = update_comment(
+        comment_id,
+        current_user.id,
+        request.form.get("body", ""),
+        request.form.get("stars", ""),
+        is_admin=current_user.role_admin(),
+    )
+    if row is None:
+        flash(_("That comment could not be changed."), category="error")
+        return redirect(url_for("web.index"))
+    flash(_("Comment saved."), category="success")
+    return _back_to_book(row.book_id)
+
+
+@library_ui_bp.route("/library/comment/<int:comment_id>/delete", methods=["POST"])
+@user_login_required
+def delete_book_comment(comment_id):
+    from .models import LibraryComment
+    from .. import ub
+    existing = ub.session.query(LibraryComment).filter(LibraryComment.id == comment_id).first()
+    book_id = existing.book_id if existing else None
+    ok = delete_comment(comment_id, current_user.id, is_admin=current_user.role_admin())
+    flash(_("Comment removed.") if ok else _("That comment could not be changed."), category="success" if ok else "error")
+    if book_id:
+        return _back_to_book(book_id)
+    return redirect(url_for("web.index"))
+
+
+@library_ui_bp.route("/library/comment/<int:comment_id>/hide", methods=["POST"])
+@user_login_required
+@admin_required
+def hide_book_comment(comment_id):
+    from .models import LibraryComment
+    from .. import ub
+    existing = ub.session.query(LibraryComment).filter(LibraryComment.id == comment_id).first()
+    hidden = request.form.get("hidden") == "1"
+    set_hidden(comment_id, hidden)
+    flash(_("Comment hidden.") if hidden else _("Comment visible again."), category="success")
+    if request.form.get("next") == "admin":
+        return redirect(url_for("library_ui.moderate_comments"))
+    if existing:
+        return _back_to_book(existing.book_id)
+    return redirect(url_for("library_ui.moderate_comments"))
+
+
+@library_ui_bp.route("/admin/library/comments")
+@user_login_required
+@admin_required
+def moderate_comments():
+    return render_title_template(
+        "library_ui_comments.html",
+        title=_("Comments"),
+        page="admincomments",
+        comments=recent_comments(),
+        comment_author=user_name,
     )
