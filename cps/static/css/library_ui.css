@@ -1,1 +1,44 @@
 /* Library UI. Admin custom CSS is injected after this file. */
+
+.library-brand-logo {
+  height: 28px;
+  width: auto;
+  max-width: 140px;
+  margin-right: 8px;
+  vertical-align: middle;
+  object-fit: contain;
+}
+
+.library-login-logo {
+  margin-bottom: 12px;
+}
+
+.library-login-logo img {
+  max-height: 72px;
+  max-width: 220px;
+  width: auto;
+  object-fit: contain;
+}
+
+.library-brand-preview {
+  max-height: 80px;
+  max-width: 240px;
+  background: #fff;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.library-favicon-preview {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  background: #fff;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.library-inline-form {
+  display: inline-block;
+  margin-left: 8px;
+  margin-top: 8px;
+}

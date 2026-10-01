@@ -8,7 +8,9 @@
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 
-from sqlalchemy import Column, Integer, String, Text
+from datetime import datetime, timezone
+
+from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text
 try:
     from sqlalchemy.orm import declarative_base
 except ImportError:
@@ -28,3 +30,18 @@ class LibrarySetting(Base):
 
     def __repr__(self):
         return "<LibrarySetting %r>" % self.key
+
+
+class LibraryAsset(Base):
+    """Logo and favicon bytes. Stored only in app.db."""
+
+    __tablename__ = "library_ui_asset"
+
+    id = Column(Integer, primary_key=True)
+    kind = Column(String(16), unique=True, nullable=False)
+    mime = Column(String(64), nullable=False)
+    data = Column(LargeBinary, nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def __repr__(self):
+        return "<LibraryAsset %r>" % self.kind

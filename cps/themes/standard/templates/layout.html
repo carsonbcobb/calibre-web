@@ -12,8 +12,17 @@
       <meta name="google-site-verification" content="{{g.google_site_verification}}">
     {% endif %}
     <!-- Bootstrap -->
+    {% if library_logo_url %}
+    <link rel="apple-touch-icon" href="{{ library_logo_url }}">
+    {% else %}
     <link rel="apple-touch-icon" sizes="140x140" href="{{ url_for('static', filename='favicon.ico') }}">
+    {% endif %}
+    {% if library_favicon_url %}
+    <link rel="icon" href="{{ library_favicon_url }}">
+    <link rel="shortcut icon" href="{{ library_favicon_url }}">
+    {% else %}
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    {% endif %}
     <link href="{{ url_for('static', filename='css/libs/bootstrap.min.css') }}" rel="stylesheet" media="screen">
     {% block header %}{% endblock %}
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" media="screen">
@@ -34,7 +43,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="{{url_for('web.index')}}">{{instance}}</a>
+          <a class="navbar-brand" href="{{url_for('web.index')}}">{% if library_logo_url %}<img class="library-brand-logo" src="{{ library_logo_url }}" alt="">{% endif %}{{instance}}</a>
         </div>
         {% if current_user.is_authenticated or g.allow_anonymous %}
           <form class="navbar-form navbar-left" role="search" action="{{url_for('search.simple_search')}}" method="GET">

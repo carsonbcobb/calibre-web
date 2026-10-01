@@ -8,6 +8,7 @@
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 
+from .branding import asset_urls
 from .css_sanitize import sanitize_css
 from .store import get_setting
 
@@ -17,6 +18,12 @@ def library_context():
         custom_css = sanitize_css(get_setting("custom_css", ""))
     except Exception:
         custom_css = ""
+    try:
+        urls = asset_urls()
+    except Exception:
+        urls = {"logo": "", "favicon": ""}
     return {
         "library_custom_css": custom_css,
+        "library_logo_url": urls.get("logo") or "",
+        "library_favicon_url": urls.get("favicon") or "",
     }

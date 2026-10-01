@@ -1,6 +1,11 @@
 {% extends theme("layout.html") %}
 {% block body %}
 <div class="well col-sm-6 col-sm-offset-2">
+  {% if library_logo_url %}
+  <div class="library-login-logo">
+    <img src="{{ library_logo_url }}" alt="{{ instance }}">
+  </div>
+  {% endif %}
   <h2 style="margin-top: 0">{{_('Login')}}</h2>
   <form method="POST" role="form">
     <input type="hidden" name="next" value="{{next_url}}">

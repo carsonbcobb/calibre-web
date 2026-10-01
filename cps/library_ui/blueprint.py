@@ -8,12 +8,13 @@
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 
-from flask import Blueprint, flash, redirect, request, url_for
+from flask import Blueprint, abort, flash, make_response, redirect, request, url_for
 from flask_babel import gettext as _
 
 from ..admin import admin_required
 from ..render_template import render_title_template
 from ..usermanagement import user_login_required
+from .branding import delete_asset, get_asset, save_upload
 from .css_sanitize import sanitize_css
 from .store import get_setting, set_setting
 
@@ -35,4 +36,45 @@ def custom_css():
         title=_("Custom CSS"),
         page="admincss",
         custom_css=get_setting("custom_css", ""),
+    )
+
+
+@library_ui_bp.route("/library/branding/<kind>")
+def brand_asset(kind):
+    asset = get_asset(kind)
+    if asset is None:
+        abort(404)
+    response = make_response(asset.data)
+    response.headers["Content-Type"] = asset.mime
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@library_ui_bp.route("/admin/library/branding", methods=["GET", "POST"])
+@user_login_required
+@admin_required
+def branding():
+    if request.method == "POST":
+        action = request.form.get("action", "")
+        if action == "remove_logo":
+            delete_asset("logo")
+            flash(_("Logo removed."), category="success")
+        elif action == "remove_favicon":
+            delete_asset("favicon")
+            flash(_("Favicon removed."), category="success")
+        elif action == "logo":
+            error = save_upload("logo", request.files.get("image"))
+            flash(error or _("Logo saved."), category="error" if error else "success")
+        elif action == "favicon":
+            error = save_upload("favicon", request.files.get("image"))
+            flash(error or _("Favicon saved."), category="error" if error else "success")
+        else:
+            flash(_("Unknown image."), category="error")
+        return redirect(url_for("library_ui.branding"))
+
+    return render_title_template(
+        "library_ui_branding.html",
+        title=_("Logo and Favicon"),
+        page="adminbrand",
     )

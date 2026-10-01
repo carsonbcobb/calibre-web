@@ -1,0 +1,69 @@
+{% extends theme("layout.html") %}
+{% block body %}
+<div class="col-sm-12 col-md-10 col-lg-8 library-branding">
+  <h2>{{ _('Logo and Favicon') }}</h2>
+  <p class="text-muted">
+    {{ _('The logo sits beside the library title in the bar and on the login page. The favicon is the small icon in the browser tab. The library title stays in place either way.') }}
+  </p>
+
+  <div class="panel panel-default">
+    <div class="panel-heading">{{ _('Logo') }}</div>
+    <div class="panel-body">
+      {% if library_logo_url %}
+      <p><img class="library-brand-preview" src="{{ library_logo_url }}" alt="{{ _('Current logo') }}"></p>
+      {% else %}
+      <p class="text-muted">{{ _('No logo yet.') }}</p>
+      {% endif %}
+      <form method="POST" enctype="multipart/form-data" action="{{ url_for('library_ui.branding') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="logo">
+        <div class="form-group">
+          <label for="logo_image">{{ _('Logo image') }}</label>
+          <input type="file" id="logo_image" name="image" accept="image/png,image/jpeg,image/gif,image/webp,image/x-icon">
+          <p class="help-block">{{ _('PNG, JPEG, GIF, WebP, or ICO. Up to 2 MB.') }}</p>
+        </div>
+        <button type="submit" class="btn btn-primary" id="save_logo">{{ _('Save logo') }}</button>
+      </form>
+      {% if library_logo_url %}
+      <form method="POST" action="{{ url_for('library_ui.branding') }}" class="library-inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="remove_logo">
+        <button type="submit" class="btn btn-default" id="remove_logo">{{ _('Remove logo') }}</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="panel panel-default">
+    <div class="panel-heading">{{ _('Favicon') }}</div>
+    <div class="panel-body">
+      {% if library_favicon_url %}
+      <p><img class="library-favicon-preview" src="{{ library_favicon_url }}" alt="{{ _('Current favicon') }}"></p>
+      {% else %}
+      <p class="text-muted">{{ _('No favicon yet.') }}</p>
+      {% endif %}
+      <form method="POST" enctype="multipart/form-data" action="{{ url_for('library_ui.branding') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="favicon">
+        <div class="form-group">
+          <label for="favicon_image">{{ _('Favicon image') }}</label>
+          <input type="file" id="favicon_image" name="image" accept="image/png,image/jpeg,image/gif,image/webp,image/x-icon">
+          <p class="help-block">{{ _('PNG, JPEG, GIF, WebP, or ICO. Up to 2 MB. A square image works best.') }}</p>
+        </div>
+        <button type="submit" class="btn btn-primary" id="save_favicon">{{ _('Save favicon') }}</button>
+      </form>
+      {% if library_favicon_url %}
+      <form method="POST" action="{{ url_for('library_ui.branding') }}" class="library-inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="remove_favicon">
+        <button type="submit" class="btn btn-default" id="remove_favicon">{{ _('Remove favicon') }}</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <p>
+    <a class="btn btn-default" href="{{ url_for('admin.admin') }}">{{ _('Back to Admin') }}</a>
+  </p>
+</div>
+{% endblock %}
