@@ -1,0 +1,67 @@
+{% from 'cw_icons.html' import icon %}
+{# One chip bar for Genres, a single genre, and Discover. #}
+{% macro genre_bar(chips, mode='home', scroll_id='', extra=[]) %}
+<div class="cw-genre-bar">
+  <div class="cw-genre-scroll"{% if scroll_id %} id="{{ scroll_id }}"{% endif %} role="toolbar" aria-label="{{ _('Genres') }}">
+    {% if mode == 'page' %}
+    <a class="cw-genre-chip" href="{{ url_for('library_ui.genres_home') }}">{{ _('All') }}</a>
+    {% for chip in chips %}
+    <a class="cw-genre-chip{% if chip.current %} is-on{% endif %}" href="{{ chip.href }}">{{ chip.name }}</a>
+    {% endfor %}
+    {% elif mode == 'discover' %}
+    <button type="button" class="cw-genre-chip is-on" data-genre="">{{ _('All') }}</button>
+    {% for chip in chips %}
+    <button type="button" class="cw-genre-chip" data-genre="{{ chip.id }}">{{ chip.name }}</button>
+    {% endfor %}
+    {% if extra %}
+    <button type="button" class="cw-genre-chip" id="cw-genre-more" data-label="{{ _('More') }}" aria-expanded="false" aria-controls="cw-genre-pop">{{ _('More') }}</button>
+    {% endif %}
+    {% else %}
+    <button type="button" class="cw-genre-chip is-on" data-genre="">{{ _('All') }}</button>
+    {% for chip in chips %}
+    <a class="cw-genre-chip" href="{{ chip.href }}" data-genre="genre-{{ chip.id }}">{{ chip.name }}</a>
+    {% endfor %}
+    {% endif %}
+  </div>
+  {% if mode == 'discover' %}
+  <button type="button" class="cw-reroll" id="cw-discover-reroll" aria-label="{{ _('Reroll rows') }}" title="{{ _('Reroll rows') }}">{{ icon('shuffle') }}</button>
+  {% if extra %}
+  <div class="cw-genre-pop" id="cw-genre-pop" hidden>
+    <label class="sr-only" for="cw-genre-find">{{ _('Find a genre') }}</label>
+    <input class="form-control" id="cw-genre-find" type="search" placeholder="{{ _('Find a genre') }}" autocomplete="off">
+    <div class="cw-genre-pop-list">
+      {% for chip in extra %}
+      <button type="button" class="cw-genre-chip" data-genre="{{ chip.id }}">{{ chip.name }}</button>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro shelf_head(row, link_title=true) %}
+<div class="library-row-head">
+  <div>
+    {% if row.label %}
+    <p class="cw-row-label">{{ row.label }}</p>
+    {% endif %}
+    <h2 id="shelf-{{ row.id }}">
+      {% if link_title and row.href %}
+      <a href="{{ row.href }}">{{ row.title }}</a>
+      {% else %}
+      {{ row.title }}
+      {% endif %}
+    </h2>
+    {% if row.subtitle %}
+    <p class="library-row-sub">{{ row.subtitle }}</p>
+    {% endif %}
+    {% if row.count %}
+    <p class="cw-row-count">{{ _('%(count)s books', count=row.count) }}</p>
+    {% endif %}
+  </div>
+  {% if row.href %}
+  <a class="library-see-all" href="{{ row.href }}">{{ _('See all') }}</a>
+  {% endif %}
+</div>
+{% endmacro %}

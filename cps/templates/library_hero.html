@@ -1,0 +1,139 @@
+{% from 'cw_icons.html' import icon %}
+{% from 'cw_score.html' import score %}
+{% from 'library_card.html' import series_stack %}
+{% macro slide(item, active=true) -%}
+<article class="library-hero-slide cw-hero-slide{% if active %} is-active{% endif %}{% if item.large %} is-large{% endif %}{% if item.system %} is-system{% endif %}{% if item.panel and item.panel.quotes %} is-quote{% endif %}"{% if item.book %} style="--cw-hero-image: url('{{ url_for('web.get_cover', book_id=item.cover_book_id or item.book.id, resolution='og') }}')"{% endif %}>
+  <div class="cw-hero-bg"></div>
+  <div class="cw-hero-shade"></div>
+  <div class="cw-hero-inner">
+    <div class="cw-hero-main">
+    {% set hero_href = item.more_url or (url_for('web.show_book', book_id=item.book.id) if item.book else '') %}
+    {% if item.book %}
+    <div class="cw-hero-cover-wrap">
+      <a class="cw-hero-cover-link" href="{{ hero_href }}">
+        {% if item.plain_series and item.cover_ids and item.cover_ids|length > 1 %}
+        {{ series_stack(item.cover_ids, true) }}
+        {% else %}
+        <img class="cw-hero-cover" src="{{ url_for('web.get_cover', book_id=item.cover_book_id or item.book.id, resolution='lg') }}" alt="" width="240" height="360" decoding="async">
+        {% endif %}
+      </a>
+      {% if not item.system and item.plain_series and item.pages %}
+      <span class="library-series-badge">{{ item.pages }}</span>
+      {% endif %}
+    </div>
+    {% endif %}
+    <div class="cw-hero-copy">
+      <p class="cw-kicker">{{ item.kicker or _('Featured') }}</p>
+      <h2><a class="cw-hero-title-link" href="{{ hero_href }}">{{ item.headline or item.title }}</a></h2>
+      {% if item.system %}
+      {% if item.meta %}
+      <p class="cw-hero-meta">{{ item.meta }}</p>
+      {% endif %}
+      {% if item.rating_value %}
+      <p class="cw-hero-rating">{{ score(item.rating_value, item.rating_count, item.rating_source, 'page') }}</p>
+      {% elif item.book %}
+      {% set hero_rating = library_rating_info(item.book.id) %}
+      {% if hero_rating %}
+      <p class="cw-hero-rating">{{ score(hero_rating.value, hero_rating.count, hero_rating.source, 'page') }}</p>
+      {% endif %}
+      {% endif %}
+      {% if item.accolades %}
+      <div class="cw-accolade-row">
+        {% for tag in item.accolades[:2] %}
+        <span class="cw-accolade-tag is-{{ tag.tone }}">{{ icon(tag.icon) }}{{ tag.label }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if item.blurb %}
+      <p class="cw-hero-blurb{% if item.clamp_blurb %} is-clamp{% endif %}">{{ item.blurb }}</p>
+      {% if item.clamp_blurb and item.more_url %}
+      <a class="cw-blurb-more" href="{{ item.more_url }}">{{ _('Read more') }}</a>
+      {% endif %}
+      {% endif %}
+      {% else %}
+      {% if item.series_line %}
+      <p class="cw-hero-series">{{ item.series_line }}</p>
+      {% elif item.book and item.book.series and not item.plain_series %}
+      <p class="cw-hero-series">{{ _('Book %(index)s of %(name)s', index=item.book.series_index|formatfloat(2), name=item.book.series[0].name) }}</p>
+      {% endif %}
+      {% if item.meta %}
+      <p class="cw-hero-series">{{ item.meta }}</p>
+      {% endif %}
+      {% if item.blurb %}
+      <p class="cw-hero-blurb">{{ item.blurb }}{% if item.blurb_rest %} <span class="cw-hero-blurb-rest" hidden>{{ item.blurb_rest }}</span> <button type="button" class="cw-blurb-more">{{ _('Read more') }}</button>{% endif %}</p>
+      {% endif %}
+      {% if item.source_name %}
+      <p class="cw-source">{% if item.source_url %}<a href="{{ item.source_url }}">{{ _('Source: %(name)s', name=item.source_name) }}</a>{% else %}{{ _('Source: %(name)s', name=item.source_name) }}{% endif %}</p>
+      {% endif %}
+      {% if item.accolades %}
+      <div class="cw-accolade-row">
+        {% for tag in item.accolades[:2] %}
+        <span class="cw-accolade-tag is-{{ tag.tone }}">{{ icon(tag.icon) }}{{ tag.label }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if item.rating_value %}
+      <p class="cw-hero-rating">{{ score(item.rating_value, item.rating_count, item.rating_source, 'page') }}</p>
+      {% elif item.book %}
+      {% set hero_rating = library_rating_info(item.book.id) %}
+      {% if hero_rating %}
+      <p class="cw-hero-rating">{{ score(hero_rating.value, hero_rating.count, hero_rating.source, 'page') }}</p>
+      {% endif %}
+      {% endif %}
+      {% if item.pages or item.read_time %}
+      <div class="cw-chips">
+        {% if item.pages %}<span class="cw-chip">{{ icon('book') }}{{ item.pages }}</span>{% endif %}
+        {% if item.read_time %}<span class="cw-chip">{{ icon('clock') }}{{ item.read_time }}</span>{% endif %}
+      </div>
+      {% endif %}
+      {% endif %}
+      <div class="cw-hero-actions">
+        {% if item.href_kind == 'collection' and item.shelf %}
+        <a class="btn cw-btn-secondary" href="{{ url_for('shelf.show_shelf', shelf_id=item.shelf.id) }}">{{ _('View collection') }}</a>
+        {% elif item.action_url %}
+        <a class="btn library-send-kindle" href="{{ item.action_url }}">{{ icon(item.action_icon or 'send') }}<span>{{ item.action_label }}</span></a>
+        {% elif item.send_url %}
+        <button type="button" class="btn library-send-kindle" data-href="{{ item.send_url }}"{% if item.send_toast %} data-toast="{{ item.send_toast }}"{% endif %}>{{ icon('send') }}<span>{{ item.send_label or _('Send to Kindle') }}</span></button>
+        {% elif item.book %}
+        {% set book = item.book %}
+        {% include 'library_send.html' %}
+        {% endif %}
+      </div>
+    </div>
+    </div>
+    {% if item.panel and item.panel.quotes %}
+    <aside class="cw-hero-panel">
+      <div class="cw-hero-quotes" data-quotes="{{ item.panel.quotes|length }}">
+        {% for quote in item.panel.quotes %}
+        <blockquote class="cw-quote cw-hero-quote{% if loop.first %} is-active{% endif %}">
+          <span class="cw-quote-mark" aria-hidden="true">&ldquo;</span>
+          <p>{{ quote.quote }}</p>
+          {% if quote.url %}
+          <a class="cw-quote-pub" href="{{ quote.url }}">{{ quote.publication }}</a>
+          {% else %}
+          <span class="cw-quote-pub">{{ quote.publication }}</span>
+          {% endif %}
+          {% if quote.book_title %}
+          <a class="cw-quote-book" href="{{ url_for('web.show_book', book_id=quote.book_id) }}">{{ quote.book_title }}</a>
+          {% endif %}
+        </blockquote>
+        {% endfor %}
+        {% if item.panel.quotes|length > 1 %}
+        <div class="cw-hero-dots">
+          {% for quote in item.panel.quotes %}
+          <button type="button" class="cw-hero-dot{% if loop.first %} is-active{% endif %}" data-quote="{{ loop.index0 }}" aria-label="{{ _('Show quote %(num)s', num=loop.index) }}"></button>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </aside>
+    {% endif %}
+  </div>
+</article>
+{%- endmacro %}
+
+{% macro stage(item) -%}
+<section class="library-hero cw-hero">
+  {{ slide(item, true) }}
+</section>
+{%- endmacro %}

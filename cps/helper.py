@@ -769,10 +769,10 @@ def get_book_cover_internal(book, resolution=None):
             cover_file_path = os.path.join(config.get_book_path(), book.path)
             if os.path.isfile(os.path.join(cover_file_path, "cover.jpg")):
                 return send_from_directory(cover_file_path, "cover.jpg")
-            else:
-                return get_cover_on_failure()
-    else:
-        return get_cover_on_failure()
+            log.error("Cover file missing for book %s at %s", book.id, book.path)
+            return get_cover_on_failure()
+    log.error("No cover recorded for book %s", getattr(book, "id", None))
+    return get_cover_on_failure()
 
 
 def get_book_cover_thumbnail(book, resolution):

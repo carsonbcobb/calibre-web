@@ -1,0 +1,47 @@
+{% extends theme("layout.html") %}
+{% import 'library_card.html' as cards %}
+{% from 'library_hero.html' import stage as hero_stage %}
+{% from 'library_genre_bar.html' import genre_bar, shelf_head %}
+{% block body %}
+<div class="library-home library-browse">
+  {% if hero %}
+  {{ hero_stage(hero) }}
+  {% endif %}
+  {% if pills %}
+  {{ genre_bar(pills, 'page') }}
+  {% endif %}
+  {% for row in rows %}
+  <section class="library-row-wrap" aria-labelledby="shelf-{{ row.id }}">
+    {{ shelf_head(row, false) }}
+    {{ cards.scroller('row-' ~ row.id, row.books) }}
+  </section>
+  {% endfor %}
+  <section class="library-row-wrap" id="genre-grid" aria-labelledby="genre-grid-heading">
+    <div class="library-row-head">
+      <div>
+        {% if grid_label %}
+        <p class="cw-row-label">{{ grid_label }}</p>
+        {% endif %}
+        <h2 id="genre-grid-heading">{{ grid_title or _('All books') }}</h2>
+        {% if grid_subtitle %}
+        <p class="library-row-sub">{{ grid_subtitle }}</p>
+        {% endif %}
+        {% if grid_count %}
+        <p class="cw-row-count">{{ _('%(count)s books', count=grid_count) }}</p>
+        {% endif %}
+      </div>
+      <nav class="cw-sort" aria-label="{{ _('Sort') }}">
+        <a class="{% if sort == 'title' %}is-on{% endif %}" href="{{ url_for('library_ui.genre_page', name=genre_name, sort='title') }}">{{ _('Title') }}</a>
+        <a class="{% if sort == 'added' %}is-on{% endif %}" href="{{ url_for('library_ui.genre_page', name=genre_name, sort='added') }}">{{ _('Recently added') }}</a>
+        <a class="{% if sort == 'rating' %}is-on{% endif %}" href="{{ url_for('library_ui.genre_page', name=genre_name, sort='rating') }}">{{ _('Rating') }}</a>
+        <a class="{% if sort == 'length' %}is-on{% endif %}" href="{{ url_for('library_ui.genre_page', name=genre_name, sort='length') }}">{{ _('Length') }}</a>
+      </nav>
+    </div>
+    <div class="cw-book-grid">
+      {% for book in grid %}
+      {{ cards.book_card(book) }}
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

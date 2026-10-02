@@ -1315,7 +1315,9 @@ def new_user():
     kobo_support = feature_support['kobo'] and config.config_kobo_sync
     if request.method == "POST":
         to_save = request.form.to_dict()
-        _handle_new_user(to_save, content, languages, translations, kobo_support)
+        resp = _handle_new_user(to_save, content, languages, translations, kobo_support)
+        if resp:
+            return resp
     else:
         content.role = config.config_default_role
         content.sidebar_view = config.config_default_show
@@ -2018,7 +2020,7 @@ def _db_configuration_result(error_flash=None, gdrive_error=None):
 
 
 def _handle_new_user(to_save, content, languages, translations, kobo_support):
-    content.default_language = to_save["default_language"]
+    content.default_language = to_save.get("default_language") or config.config_default_language
     content.locale = to_save.get("locale", content.locale)
 
     content.sidebar_view = sum(int(key[5:]) for key in to_save if key.startswith('show_'))
@@ -2027,7 +2029,7 @@ def _handle_new_user(to_save, content, languages, translations, kobo_support):
 
     content.role = constants.selected_roles(to_save)
     try:
-        if not to_save["name"] or not to_save["email"] or not to_save["password"]:
+        if not to_save.get("name") or not to_save.get("email") or not to_save.get("password"):
             log.info("Missing entries on new user")
             raise Exception(_("Oops! Please complete all fields."))
         content.password = generate_password_hash(helper.valid_password(to_save.get("password", "")))

@@ -1,0 +1,29 @@
+{% import 'library_card.html' as cards %}
+{% if lanes %}
+<section class="library-row-wrap cw-lanes-wrap" aria-labelledby="shelf-{{ row_id }}">
+  <div class="library-row-head">
+    <h2 id="shelf-{{ row_id }}">{{ title }}</h2>
+    {% if subtitle %}<p class="cw-row-sub">{{ subtitle }}</p>{% endif %}
+  </div>
+  <div class="cw-lanes">
+    {% for lane in lanes %}
+    <a class="cw-lane" href="{{ lane.href }}">
+      <span class="cw-lane-name">{{ lane.name }}</span>
+      <span class="cw-lane-covers">
+        {% for book in lane.books %}
+        {{ cards.cover(book) }}
+        {% endfor %}
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% elif books %}
+<section class="library-row-wrap{% if cover_only %} cw-cover-row{% endif %}" aria-labelledby="shelf-{{ row_id }}">
+  <div class="library-row-head">
+    <h2 id="shelf-{{ row_id }}">{{ title }}</h2>
+    {% if subtitle %}<p class="cw-row-sub">{{ subtitle }}</p>{% endif %}
+  </div>
+  {{ cards.scroller(row_id, books) }}
+</section>
+{% endif %}

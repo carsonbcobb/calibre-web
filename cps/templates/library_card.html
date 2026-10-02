@@ -1,37 +1,94 @@
 {% import 'image.html' as image %}
-{% macro cover(book) -%}
+{% from 'cw_icons.html' import icon %}
+{% from 'cw_score.html' import score %}
+{% macro accolade_line(tag) -%}
+<span class="cw-accolade-slot">{% if tag %}<span class="cw-accolade is-{{ tag.tone }}">{{ icon(tag.icon) }}{{ tag.label }}</span>{% endif %}</span>
+{%- endmacro %}
+
+{% macro cover(book, index_badge=false, eager=false) -%}
 <span class="library-card-cover">
-  {{ image.book_cover(book) }}
+  {{ image.book_cover(book, index_badge=index_badge, eager=eager) }}
+  {% if library_is_favorite(book.id) %}
+  <span class="cw-fav-mark" aria-hidden="true">{{ icon('heart-fill') }}</span>
+  {% endif %}
 </span>
 {%- endmacro %}
 
-{% macro book_card(book) -%}
-<div class="library-card">
-  <a class="library-card-link" href="{{ url_for('web.show_book', book_id=book.id) }}">
-    {{ cover(book) }}
-    <span class="library-card-title">{{ book.title }}</span>
-    <span class="library-card-author">
-      {% for author in book.authors %}
-        {{ author.name.replace('|', ',') }}{% if not loop.last %}, {% endif %}
-      {% endfor %}
+{% macro series_stack(covers, eager=false) -%}
+<span class="cw-stack">
+  <span class="cw-stack-lift">
+    {% for cover in covers %}
+    <span class="cw-peek cw-peek-{{ loop.index0 }}">
+      <img class="cw-peek-img" src="{% if cover is string %}{{ cover }}{% else %}{{ url_for('web.get_cover', book_id=cover, resolution='og') }}{% endif %}" alt="" width="140" height="210" loading="{% if eager %}eager{% else %}lazy{% endif %}" decoding="async" onerror="this.onerror=null;this.classList.add('is-broken')">
     </span>
-    {% if library_read_bits(book.id) %}
-    <span class="library-card-time">{{ library_read_bits(book.id) }}</span>
-    {% endif %}
-    {% if library_rating_bits(book.id) %}
-    <span class="library-card-rating">{{ library_rating_bits(book.id) }}</span>
-    {% endif %}
+    {% endfor %}
+  </span>
+</span>
+{%- endmacro %}
+
+{% macro series_card(book) -%}
+<div class="library-card is-series">
+  <a class="library-card-link" href="{{ book.library_href }}">
+    {{ series_stack(book.library_cover_ids) }}
+    <span class="library-series-badge">{{ book.library_count_label }}</span>
+    <span class="library-card-copy">
+      <span class="library-card-title">{{ book.library_series_name }}</span>
+      <span class="library-card-author">{{ book.library_author }}</span>
+      <span class="library-card-time">{{ book.library_meta_line }}</span>
+      <span class="library-card-rating">{{ score(book.library_rating_value, book.library_rating_count, book.library_rating_source, 'card') }}</span>
+      {{ accolade_line(book.library_accolade if book.library_accolade is defined else none) }}
+      <span class="cw-unit-progress"{% if not book.library_progress %} hidden{% endif %}><span style="width: {{ book.library_progress }}%"></span></span>
+    </span>
   </a>
-  {% include 'library_send.html' %}
+  {% if book.library_send_url %}
+  <div class="cw-card-actions">
+    <button type="button" class="btn library-send-kindle" data-href="{{ book.library_send_url }}" data-toast="{{ _('Sent %(title)s', title=book.library_send_title) }}">{{ icon('send') }}<span>{{ _('Send to Kindle') }}</span></button>
+  </div>
+  {% endif %}
 </div>
 {%- endmacro %}
 
-{% macro scroller(row_id, books) -%}
-<div class="library-row" id="{{ row_id }}">
-  <div class="library-row-scroller">
-    {% for book in books %}
-      {{ book_card(book) }}
-    {% endfor %}
+{% macro book_card(book, current=false, index_badge=false, eager=false) -%}
+{% if book.library_unit == 'series' %}
+{{ series_card(book) }}
+{% else %}
+<div class="library-card{% if current %} is-current{% endif %}">
+  <a class="library-card-link" href="{{ url_for('web.show_book', book_id=book.id) }}">
+    {{ cover(book, index_badge, eager) }}
+    {% if current %}
+    <span class="cw-reading">{{ _('Reading this') }}</span>
+    {% endif %}
+    <span class="library-card-copy">
+      <span class="library-card-title">{{ book.title }}</span>
+      <span class="library-card-author">
+        {% for author in book.authors %}
+          {{ author.name.replace('|', ',') }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+      </span>
+      <span class="library-card-time">{{ library_read_bits(book.id) }}</span>
+      {% set rating = library_rating_info(book.id) %}
+      <span class="library-card-rating">{% if rating %}{{ score(rating.value, rating.count, rating.source, 'card') }}{% endif %}</span>
+      {{ accolade_line(library_top_accolade(book.id)) }}
+      <span class="cw-unit-progress" hidden><span></span></span>
+    </span>
+  </a>
+  <div class="cw-card-actions">
+    {% include 'library_send.html' %}
   </div>
+</div>
+{% endif %}
+{%- endmacro %}
+
+{% macro scroller(row_id, books) -%}
+<div class="cw-row-stage">
+  <button type="button" class="library-scroll cw-arrow cw-arrow-prev" data-dir="-1" aria-label="{{ _('Scroll back') }}">&#8249;</button>
+  <div class="library-row" id="{{ row_id }}">
+    <div class="library-row-scroller">
+      {% for book in books %}
+        {{ book_card(book) }}
+      {% endfor %}
+    </div>
+  </div>
+  <button type="button" class="library-scroll cw-arrow cw-arrow-next" data-dir="1" aria-label="{{ _('Scroll forward') }}">&#8250;</button>
 </div>
 {%- endmacro %}

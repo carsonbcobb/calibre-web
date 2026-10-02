@@ -1,14 +1,23 @@
+{% from 'cw_icons.html' import icon %}
+{% from 'cw_score.html' import score %}
 <section class="library-comments" id="comments">
-  <h3>{{ _('Comments and reviews') }}</h3>
   {% set notes = library_comments(entry.id) %}
+  <h3>{{ _('Comments') }} <span class="cw-count">{{ notes|length }}</span></h3>
   {% if notes %}
     {% for note in notes %}
-    <article class="library-comment">
-      <header>
-        <strong>{{ library_comment_author(note.user_id) }}</strong>
-        {% if note.stars %}
-        <span class="library-comment-stars">{{ note.stars }} / 5</span>
-        {% endif %}
+    {% set author = library_comment_author(note.user_id) or _('Reader') %}
+    <article class="library-comment cw-comment-card">
+      <header class="cw-comment-head">
+        <span class="cw-avatar" aria-hidden="true">{{ author[:1]|upper }}</span>
+        <div>
+          <strong>{{ author }}</strong>
+          {% if note.created_at %}
+          <time class="cw-comment-date" datetime="{{ note.created_at.isoformat() }}">{{ note.created_at.strftime('%b %d, %Y') }}</time>
+          {% endif %}
+          {% if note.stars %}
+          {{ score(note.stars, none, '', 'card') }}
+          {% endif %}
+        </div>
       </header>
       <p>{{ note.body }}</p>
       {% if current_user.is_authenticated and (current_user.id == note.user_id or current_user.role_admin()) %}
@@ -18,16 +27,13 @@
           <label class="sr-only" for="edit-body-{{ note.id }}">{{ _('Comment') }}</label>
           <textarea class="form-control" id="edit-body-{{ note.id }}" name="body" rows="3">{{ note.body }}</textarea>
         </div>
-        <div class="form-group">
-          <label for="edit-stars-{{ note.id }}">{{ _('Stars') }}</label>
-          <select class="form-control" id="edit-stars-{{ note.id }}" name="stars">
-            <option value="" {% if not note.stars %}selected{% endif %}>{{ _('No stars') }}</option>
-            {% for n in range(1, 6) %}
-            <option value="{{ n }}" {% if note.stars == n %}selected{% endif %}>{{ n }}</option>
-            {% endfor %}
-          </select>
+        <div class="cw-stars" role="radiogroup" aria-label="{{ _('Stars') }}">
+          {% for n in range(5, 0, -1) %}
+          <input type="radio" name="stars" id="edit-star-{{ note.id }}-{{ n }}" value="{{ n }}" {% if note.stars == n %}checked{% endif %}>
+          <label for="edit-star-{{ note.id }}-{{ n }}">{{ icon('star') }}</label>
+          {% endfor %}
         </div>
-        <button class="btn btn-default btn-sm" type="submit">{{ _('Save comment') }}</button>
+        <button class="btn btn-primary" type="submit">{{ _('Save comment') }}</button>
       </form>
       <form method="POST" action="{{ url_for('library_ui.delete_book_comment', comment_id=note.id) }}" class="library-inline-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -44,27 +50,46 @@
     </article>
     {% endfor %}
   {% else %}
-  <p class="text-muted">{{ _('No comments yet.') }}</p>
+  <p class="cw-empty">{{ icon('message-circle') }}{{ _('No comments yet. Be the first to share a thought.') }}</p>
   {% endif %}
 
   {% if current_user.is_authenticated and not current_user.is_anonymous %}
   <form method="POST" action="{{ url_for('library_ui.add_book_comment', book_id=entry.id) }}" class="library-comment-new">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-group">
-      <label for="new-comment">{{ _('Write a comment') }}</label>
-      <textarea class="form-control" id="new-comment" name="body" rows="4" maxlength="2000"></textarea>
+      <label class="sr-only" for="new-comment">{{ _('Write a comment') }}</label>
+      <textarea class="form-control" id="new-comment" name="body" rows="4" maxlength="2000" placeholder="{{ _('Write a comment') }}"></textarea>
     </div>
-    <div class="form-group">
-      <label for="new-stars">{{ _('Stars') }}</label>
-      <select class="form-control" id="new-stars" name="stars">
-        <option value="">{{ _('No stars') }}</option>
-        {% for n in range(1, 6) %}
-        <option value="{{ n }}">{{ n }}</option>
+    <div class="cw-comment-form-row">
+      <div class="cw-stars" role="radiogroup" aria-label="{{ _('Stars') }}">
+        {% for n in range(5, 0, -1) %}
+        <input type="radio" name="stars" id="new-star-{{ n }}" value="{{ n }}">
+        <label for="new-star-{{ n }}">{{ icon('star') }}</label>
         {% endfor %}
-      </select>
-      <p class="help-block">{{ _('Stars are optional.') }}</p>
+      </div>
+      <button class="btn btn-primary cw-post" type="submit">{{ _('Post') }}</button>
     </div>
-    <button class="btn btn-primary" type="submit">{{ _('Save comment') }}</button>
   </form>
   {% endif %}
 </section>
+<script>
+document.querySelectorAll(".cw-comment-date").forEach(function (node) {
+  var then = new Date(node.getAttribute("datetime"));
+  if (isNaN(then.getTime())) {
+    return;
+  }
+  var seconds = Math.round((Date.now() - then.getTime()) / 1000);
+  var text = node.textContent;
+  if (seconds < 45) {
+    text = "Just now";
+  } else if (seconds < 3600) {
+    text = Math.floor(seconds / 60) + " min ago";
+  } else if (seconds < 86400) {
+    text = Math.floor(seconds / 3600) + " hr ago";
+  } else if (seconds < 86400 * 14) {
+    var days = Math.floor(seconds / 86400);
+    text = days === 1 ? "1 day ago" : days + " days ago";
+  }
+  node.textContent = text;
+});
+</script>

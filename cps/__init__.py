@@ -24,6 +24,7 @@ __package__ = "cps"
 import sys
 import os
 import mimetypes
+from datetime import timedelta
 
 from flask import Flask
 from flask.sessions import SecureCookieSessionInterface
@@ -84,11 +85,35 @@ mimetypes.add_type('text/rtf', '.rtf')
 
 log = logger.create()
 
+
+def _env_flag(name, default=False):
+    raw = os.environ.get(name)
+    if raw is None or not str(raw).strip():
+        return default
+    return str(raw).strip().lower() in ("1", "true", "yes", "on")
+
+
+# Cookie flags live here. Defaults work on plain http (a phone on the LAN).
+# Set COOKIE_SECURE=1 when the site is served only over https.
+# Set COOKIE_DOMAIN only if every hostname should share one cookie.
+# Set COOKIE_SAMESITE to Lax, Strict, or None.
+_COOKIE_SECURE = _env_flag("COOKIE_SECURE", False)
+_COOKIE_DOMAIN = (os.environ.get("COOKIE_DOMAIN") or "").strip() or None
+_COOKIE_SAMESITE = (os.environ.get("COOKIE_SAMESITE") or "Lax").strip() or "Lax"
+
 app = Flask(__name__)
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='Lax',
-    REMEMBER_COOKIE_SAMESITE='Strict',
+    SESSION_COOKIE_SECURE=_COOKIE_SECURE,
+    SESSION_COOKIE_SAMESITE=_COOKIE_SAMESITE,
+    SESSION_COOKIE_DOMAIN=_COOKIE_DOMAIN,
+    REMEMBER_COOKIE_HTTPONLY=True,
+    REMEMBER_COOKIE_SECURE=_COOKIE_SECURE,
+    REMEMBER_COOKIE_SAMESITE=_COOKIE_SAMESITE,
+    REMEMBER_COOKIE_DOMAIN=_COOKIE_DOMAIN,
+    REMEMBER_COOKIE_DURATION=timedelta(days=30),
+    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+    SESSION_PROTECTION="basic",
     WTF_CSRF_SSL_STRICT=False,
     SESSION_COOKIE_NAME=os.environ.get('COOKIE_PREFIX', "") + "session",
     REMEMBER_COOKIE_NAME=os.environ.get('COOKIE_PREFIX', "") + "remember_token"
@@ -118,10 +143,17 @@ if limiter_present:
 else:
     limiter = None
 
+def _script_name(wrapper):
+    while wrapper is not None and not hasattr(wrapper, "script_name"):
+        wrapper = getattr(wrapper, "app", None) or getattr(wrapper, "application", None)
+    name = getattr(wrapper, "script_name", "/") if wrapper is not None else "/"
+    return (name or "/").rstrip("/") or "/"
+
+
 class ScriptNameSessionInterface(SecureCookieSessionInterface):
     def get_cookie_path(self, app):
         # Called once per response, after request context exists
-        return app.wsgi_app.script_name.rstrip("/") or "/"
+        return _script_name(app.wsgi_app)
 
 
 def create_app():
@@ -155,7 +187,16 @@ def create_app():
 
     lm.login_view = 'web.login'
     lm.anonymous_user = ub.Anonymous
-    lm.session_protection = 'strong' if config.config_session == 1 else "basic"
+    # Strong protection hashes the client address into the session. A phone
+    # switches between IPv4 and IPv6, or a tunnel adds X-Forwarded-For, and
+    # the next page is treated as a different browser. Basic keeps the login.
+    lm.session_protection = "basic"
+    app.config["SESSION_PROTECTION"] = "basic"
+
+    @app.before_request
+    def _keep_session_cookie():
+        from flask import session
+        session.permanent = True
 
     db.CalibreDB.update_config(config, config.config_calibre_dir, cli_param.settings_path)
 
@@ -181,6 +222,34 @@ def create_app():
                          res['target'],
                          res['found']))
     app.wsgi_app = ReverseProxied(app.wsgi_app)
+    trusted_proxies = (getattr(config, "config_reverse_proxy_trusted_ips", "") or "").strip()
+    if trusted_proxies:
+        from .reverse_proxy_auth import is_trusted_proxy_source
+
+        class _TrustedProxy:
+            def __init__(self, application, trusted):
+                self.application = application
+                self.trusted = trusted
+
+            @property
+            def script_name(self):
+                return _script_name(self.application)
+
+            def __call__(self, environ, start_response):
+                remote = environ.get("REMOTE_ADDR") or ""
+                if is_trusted_proxy_source(remote, self.trusted):
+                    forwarded = (environ.get("HTTP_X_FORWARDED_FOR") or "").split(",")[0].strip()
+                    if forwarded:
+                        environ["REMOTE_ADDR"] = forwarded
+                    proto = (environ.get("HTTP_X_FORWARDED_PROTO") or environ.get("HTTP_X_SCHEME") or "").split(",")[0].strip()
+                    if proto:
+                        environ["wsgi.url_scheme"] = proto
+                    host = (environ.get("HTTP_X_FORWARDED_HOST") or "").split(",")[0].strip()
+                    if host:
+                        environ["HTTP_HOST"] = host
+                return self.application(environ, start_response)
+
+        app.wsgi_app = _TrustedProxy(app.wsgi_app, trusted_proxies)
     if not hasattr(app, "theme_manager"):
         themes_extension.init_themes(app)
 

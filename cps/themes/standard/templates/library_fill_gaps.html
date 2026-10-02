@@ -1,0 +1,78 @@
+{% extends theme("layout.html") %}
+{% block body %}
+<div class="library-home cw-coverage">
+  <h1>{{ _('Fill gaps') }}</h1>
+  <p class="cw-row-sub">{{ _('Manual entries stay when a scan runs again. Awards must be on the allowlist.') }}</p>
+  <p>
+    <button type="button" class="btn btn-default" id="copy-gaps">{{ _('Copy list of gaps') }}</button>
+    <a class="btn btn-default" href="{{ url_for('library_ui.library_coverage') }}">{{ _('Coverage') }}</a>
+  </p>
+  <textarea id="gap-list" class="form-control" rows="8" readonly>{{ text }}</textarea>
+
+  <h2>{{ _('Bulk import') }}</h2>
+  <p class="cw-row-sub">{{ _('One row per line: name, field, value, source url. Field is label for a book or description for a series.') }}</p>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="import">
+    <textarea class="form-control" name="csv" rows="6" placeholder="The Hobbit, label, Hugo Award, https://example.com"></textarea>
+    <button class="btn btn-primary" type="submit">{{ _('Import') }}</button>
+  </form>
+  {% if errors %}
+  <ul>
+    {% for error in errors %}
+    <li>{{ error }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <h2>{{ _('Books without an accolade') }}</h2>
+  {% for book in books %}
+  <form method="post" class="cw-series-edit">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="book">
+    <input type="hidden" name="book_id" value="{{ book.id }}">
+    <strong>{{ book.title }}</strong>
+    {% if book.author %}<span class="cw-row-sub">{{ book.author }}</span>{% endif %}
+    <label>{{ _('Label') }} <input class="form-control" name="label"></label>
+    <label>{{ _('Type') }}
+      <select class="form-control" name="type">
+        <option value="award_win">{{ _('Award') }}</option>
+        <option value="award_nominee">{{ _('Nominee') }}</option>
+        <option value="bestseller">{{ _('Bestseller') }}</option>
+        <option value="adaptation">{{ _('Adaptation') }}</option>
+        <option value="list">{{ _('List') }}</option>
+      </select>
+    </label>
+    <label>{{ _('Year') }} <input class="form-control" name="year"></label>
+    <label>{{ _('Source link') }} <input class="form-control" name="source_url"></label>
+    <button class="btn btn-default" type="submit">{{ _('Save') }}</button>
+  </form>
+  {% else %}
+  <p>{{ _('Every book has an accolade.') }}</p>
+  {% endfor %}
+
+  <h2>{{ _('Series without a real description') }}</h2>
+  {% for item in series %}
+  <form method="post" class="cw-series-edit">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="series">
+    <input type="hidden" name="series_id" value="{{ item.id }}">
+    <strong>{{ item.name }}</strong>
+    {% if item.author %}<span class="cw-row-sub">{{ item.author }}</span>{% endif %}
+    <label>{{ _('Description') }} <textarea class="form-control" name="description" rows="3"></textarea></label>
+    <label>{{ _('Source link') }} <input class="form-control" name="source_url"></label>
+    <button class="btn btn-default" type="submit">{{ _('Save') }}</button>
+  </form>
+  {% else %}
+  <p>{{ _('Every series has a real description.') }}</p>
+  {% endfor %}
+</div>
+<script>
+document.getElementById("copy-gaps").addEventListener("click", function () {
+  var box = document.getElementById("gap-list");
+  box.focus();
+  box.select();
+  document.execCommand("copy");
+});
+</script>
+{% endblock %}

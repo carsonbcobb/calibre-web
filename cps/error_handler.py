@@ -18,10 +18,14 @@
 
 import traceback
 
-from flask import request, flash, make_response
+from flask import request, flash, make_response, redirect
 from flask_limiter import RateLimitExceeded
 from flask_babel import gettext as _
 from werkzeug.exceptions import default_exceptions
+try:
+    from flask_wtf.csrf import CSRFError
+except ImportError:
+    CSRFError = None
 
 from .cw_login import current_user
 try:
@@ -83,6 +87,22 @@ def internal_error(error):
                          ), 500
 
 
+def csrf_error(error):
+    """A normal form submit with a stale session token should reload the page.
+
+    Refreshing the error page resubmits the same failed request. Sending the
+    browser back as a GET lets the form render with a new token. Ajax stays
+    on the plain error response.
+    """
+    dest = request.headers.get("Sec-Fetch-Dest", "")
+    accepts_html = "text/html" in request.headers.get("Accept", "")
+    if dest == "document" or (not dest and accepts_html):
+        log.info("CSRF rejected %s %s", request.method, request.path)
+        flash(_("This form expired. It has been opened again."), category="error")
+        return redirect(request.path)
+    return error_http(error)
+
+
 def init_errorhandler():
     # http error handling
     for ex in default_exceptions:
@@ -90,6 +110,8 @@ def init_errorhandler():
             app.register_error_handler(ex, error_http)
         elif ex == 500:
             app.register_error_handler(ex, internal_error)
+    if CSRFError is not None:
+        app.register_error_handler(CSRFError, csrf_error)
 
     if services.ldap:
         # Only way of catching the LDAPException upon logging in with LDAP server down

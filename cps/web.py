@@ -816,6 +816,17 @@ def index(page):
 
 @login_required_if_no_ano
 def books_list(data, sort_param, book_id, page):
+    if data == "series" and str(sort_param).isdigit():
+        if not current_user.check_visibility(constants.SIDEBAR_SERIES):
+            abort(404)
+        from .library_ui.browse import render_series_detail
+        return render_series_detail(int(sort_param))
+    if data in ("unread", "read", "rated"):
+        from .library_ui.flags import render_flag_list
+        return render_flag_list(data)
+    if data == "discover":
+        from .library_ui.discover_page import render_discover_page
+        return render_discover_page()
     return render_books_list(data, sort_param, book_id, page)
 
 # Limit number of routes to avoid redirects
@@ -1013,45 +1024,9 @@ def publisher_list():
 @login_required_if_no_ano
 def series_list():
     if current_user.check_visibility(constants.SIDEBAR_SERIES):
-        if current_user.get_view_property('series', 'dir') == 'desc':
-            order = db.Series.sort.desc()
-            order_no = 0
-        else:
-            order = db.Series.sort.asc()
-            order_no = 1
-        char_list = query_char_list(db.Series.sort, db.books_series_link)
-        if current_user.get_view_property('series', 'series_view') == 'list':
-            entries = calibre_db.session.query(db.Series, func.count('books_series_link.book').label('count')) \
-                .join(db.books_series_link).join(db.Books).filter(calibre_db.common_filters()) \
-                .group_by(text('books_series_link.series')).order_by(order).all()
-            no_series_count = (calibre_db.session.query(db.Books)
-                            .outerjoin(db.books_series_link).outerjoin(db.Series)
-                            .filter(db.Series.name == None)
-                            .filter(calibre_db.common_filters())
-                            .count())
-            if no_series_count:
-                entries.append([db.Category(_("None"), "-1"), no_series_count])
-            entries = sorted(entries, key=lambda x: (x[0].sort or x[0].name).lower(), reverse=not order_no)
-            return render_title_template('list.html',
-                                         entries=entries,
-                                         folder='web.books_list',
-                                         charlist=char_list,
-                                         title=_("Series"),
-                                         page="serieslist",
-                                         data="series", order=order_no)
-        else:
-            entries = (calibre_db.session.query(db.Books, func.count('books_series_link').label('count'),
-                                                func.max(db.Books.series_index), db.Books.id)
-                       .join(db.books_series_link).join(db.Series).filter(calibre_db.common_filters())
-                       .group_by(text('books_series_link.series'))
-                       .having(or_(func.max(db.Books.series_index), db.Books.series_index==""))
-                       .order_by(order)
-                       .all())
-            return render_title_template('grid.html', entries=entries, folder='web.books_list', charlist=char_list,
-                                         title=_("Series"), page="serieslist", data="series", bodyClass="grid-view",
-                                         order=order_no)
-    else:
-        abort(404)
+        from .library_ui.browse import render_series_home
+        return render_series_home()
+    abort(404)
 
 
 @web.route("/ratings")
@@ -1665,11 +1640,6 @@ def show_book(book_id):
                 entry.audio_entries.append(media_format.format.lower())
 
         from .library_ui.series_books import books_in_series
-        try:
-            from .library_ui.ratings.service import ensure_ratings
-            ensure_ratings(entry)
-        except Exception as rating_error:
-            log.debug("External ratings skipped: %s", rating_error)
         return render_title_template('detail.html',
                                      entry=entry,
                                      cc=cc,

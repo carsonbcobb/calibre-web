@@ -1,0 +1,41 @@
+{% extends theme("layout.html") %}
+{% import 'library_card.html' as cards %}
+{% from 'library_hero.html' import stage as hero_stage %}
+{% block body %}
+<div class="library-home library-browse">
+  {% if hero %}
+  {{ hero_stage(hero) }}
+  {% endif %}
+  {% if series_description %}
+  <p class="cw-series-about" id="series-about">{{ series_description }}</p>
+  {% endif %}
+  {% if current_user.role_admin() %}
+  <form class="cw-series-edit" method="post" action="{{ url_for('library_ui.save_series_description', series_id=series_id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="series-description">{{ _('Series description') }}</label>
+    <textarea class="form-control" id="series-description" name="description" rows="4">{{ series_description }}</textarea>
+    <label for="series-source">{{ _('Source link') }}</label>
+    <input class="form-control" id="series-source" name="source_url" value="{{ series_source_url }}">
+    <button class="btn btn-default" type="submit">{{ _('Save description') }}</button>
+  </form>
+  {% endif %}
+  <section class="library-row-wrap" aria-labelledby="series-books-heading">
+    <div class="library-row-head">
+      <h2 id="series-books-heading">{{ _('Books in order') }}</h2>
+    </div>
+    <div class="cw-book-grid">
+      {% for book in volumes %}
+      {{ cards.book_card(book, false, true) }}
+      {% endfor %}
+    </div>
+  </section>
+  {% if more %}
+  <section class="library-row-wrap" aria-labelledby="shelf-{{ more.id }}">
+    <div class="library-row-head">
+      <h2 id="shelf-{{ more.id }}">{{ more.title }}</h2>
+    </div>
+    {{ cards.scroller('row-' ~ more.id, more.books) }}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

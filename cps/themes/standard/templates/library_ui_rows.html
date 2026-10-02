@@ -1,0 +1,73 @@
+{% extends theme("layout.html") %}
+{% block body %}
+<div class="discover cw-form-page">
+  <h1>{{ title }}</h1>
+  <p>{{ _('Pin a shelf to keep it at the top. The order number is used for pinned shelves. The others change once a day.') }}</p>
+
+  {% if live_rows %}
+  <p>{{ _('Showing on the home page now:') }}
+    {% for row in live_rows %}{{ row.title }}{% if not loop.last %}, {% endif %}{% endfor %}
+  </p>
+  {% endif %}
+
+  {% for shelf in shelves %}
+  <form method="POST" action="{{ url_for('library_ui.home_shelves') }}" class="cw-shelf-editor">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="slug" value="{{ shelf.slug }}">
+    <div class="form-group">
+      <label for="title-{{ shelf.slug }}">{{ shelf.default_title }}</label>
+      <input class="form-control" id="title-{{ shelf.slug }}" name="title" value="{{ shelf.title }}">
+    </div>
+    <div class="form-group">
+      <label for="sub-{{ shelf.slug }}">{{ _('Subtitle') }}</label>
+      <input class="form-control" id="sub-{{ shelf.slug }}" name="subtitle" value="{{ shelf.subtitle }}">
+    </div>
+    <div class="form-group">
+      <label for="order-{{ shelf.slug }}">{{ _('Order') }}</label>
+      <input class="form-control" id="order-{{ shelf.slug }}" name="sort_order" value="{{ shelf.sort_order }}" inputmode="numeric">
+    </div>
+    <label class="checkbox-inline">
+      <input type="checkbox" name="pinned" {% if shelf.pinned %}checked{% endif %}> {{ _('Pin') }}
+    </label>
+    <label class="checkbox-inline">
+      <input type="checkbox" name="hidden" {% if shelf.hidden %}checked{% endif %}> {{ _('Hide') }}
+    </label>
+    <div class="cw-shelf-editor-actions">
+      <button class="btn btn-default" type="submit" name="action" value="save">{{ _('Save') }}</button>
+      {% if shelf.custom %}
+      <button class="btn btn-default" type="submit" name="action" value="remove">{{ _('Remove') }}</button>
+      {% endif %}
+    </div>
+  </form>
+  {% endfor %}
+
+  <h2>{{ _('Create a shelf') }}</h2>
+  <form method="POST" action="{{ url_for('library_ui.home_shelves') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="create">
+    <div class="form-group">
+      <label for="new-title">{{ _('Title') }}</label>
+      <input class="form-control" id="new-title" name="title">
+    </div>
+    <div class="form-group">
+      <label for="new-sub">{{ _('Subtitle') }}</label>
+      <input class="form-control" id="new-sub" name="subtitle">
+    </div>
+    <div class="form-group">
+      <label for="source-kind">{{ _('Built from') }}</label>
+      <select class="form-control" id="source-kind" name="source_kind">
+        <option value="tag">{{ _('A genre') }}</option>
+        <option value="author">{{ _('An author') }}</option>
+        <option value="series">{{ _('A series') }}</option>
+        <option value="books">{{ _('A list of books') }}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="source-name">{{ _('Name') }}</label>
+      <input class="form-control" id="source-name" name="source_name" placeholder="{{ _('Name or id') }}">
+      <p class="help-block">{{ _('For a list of books, separate names with commas.') }}</p>
+    </div>
+    <button class="btn btn-default" type="submit">{{ _('Create a shelf') }}</button>
+  </form>
+</div>
+{% endblock %}

@@ -10,10 +10,11 @@
 
 
 class Rating(object):
-    def __init__(self, value, count=None, url=""):
+    def __init__(self, value=None, count=None, url="", reason=""):
         self.value = value
         self.count = count
         self.url = url or ""
+        self.reason = reason or ""
 
 
 class RatingProvider(object):

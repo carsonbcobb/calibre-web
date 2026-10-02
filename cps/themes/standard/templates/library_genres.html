@@ -1,0 +1,22 @@
+{% extends theme("layout.html") %}
+{% import 'library_card.html' as cards %}
+{% from 'library_hero.html' import stage as hero_stage %}
+{% from 'library_genre_bar.html' import genre_bar, shelf_head %}
+{% block body %}
+<div class="library-home library-browse" id="cw-genre-browser">
+  {% if hero %}
+  {{ hero_stage(hero) }}
+  {% endif %}
+  {% if pills %}
+  {{ genre_bar(pills, 'home', 'cw-genre-pills') }}
+  {% endif %}
+  {% for row in genres %}
+  {% if row.books %}
+  <section class="library-row-wrap" id="genre-{{ row.id }}" aria-labelledby="shelf-{{ row.id }}">
+    {{ shelf_head(row) }}
+    {{ cards.scroller('row-' ~ row.id, row.books) }}
+  </section>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endblock %}

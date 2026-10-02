@@ -1,0 +1,4 @@
+{% import 'library_card.html' as cards %}
+{% for book in books %}
+{{ cards.book_card(book) }}
+{% endfor %}

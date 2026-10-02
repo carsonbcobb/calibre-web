@@ -172,14 +172,17 @@
         </div>
         {% endif %}
       </div>
+      <div class="cw-actions">
       <a class="btn btn-default" id="db_config" href="{{url_for('admin.db_configuration')}}">{{_('Edit Calibre Database Configuration')}}</a>
       <a class="btn btn-default" id="basic_config" href="{{url_for('admin.configuration')}}">{{_('Edit Basic Configuration')}}</a>
       <a class="btn btn-default" id="view_config" href="{{url_for('admin.view_configuration')}}">{{_('Edit UI Configuration')}}</a>
       <a class="btn btn-default" id="library_custom_css" href="{{url_for('library_ui.custom_css')}}">{{_('Edit Custom CSS')}}</a>
       <a class="btn btn-default" id="library_branding" href="{{url_for('library_ui.branding')}}">{{_('Edit Logo and Favicon')}}</a>
       <a class="btn btn-default" id="library_heroes" href="{{url_for('library_ui.heroes')}}">{{_('Edit Featured')}}</a>
+      <a class="btn btn-default" id="library_rows" href="{{url_for('library_ui.home_shelves')}}">{{_('Edit Home Shelves')}}</a>
       <a class="btn btn-default" id="library_scan" href="{{url_for('library_ui.scan_reading')}}">{{_('Scan Reading Time')}}</a>
       <a class="btn btn-default" id="library_comments" href="{{url_for('library_ui.moderate_comments')}}">{{_('Moderate Comments')}}</a>
+      </div>
     </div>
   </div>
 {%  if feature_support['scheduler'] %}
@@ -220,23 +223,19 @@
     </div>
   </div>
 {%  endif %}
-  <div class="row form-group">
+  <div class="row cw-card">
     <h2>{{_('Administration')}}</h2>
-    <a class="btn btn-default" id="debug" href="{{url_for('admin.download_debug')}}">{{_('Download Debug Package')}}</a>
-    <a class="btn btn-default" id="logfile" href="{{url_for('admin.view_logfile')}}">{{_('View Logs')}}</a>
+    <div class="cw-actions">
+      <a class="btn btn-default" id="debug" href="{{url_for('admin.download_debug')}}">{{_('Download Debug Package')}}</a>
+      <a class="btn btn-default" id="logfile" href="{{url_for('admin.view_logfile')}}">{{_('View Logs')}}</a>
+      <div class="btn btn-default" id="restart_database" data-toggle="modal" data-target="#StatusDialog">{{_('Reconnect Calibre Database')}}</div>
+      <div class="btn btn-default" id="admin_restart" data-toggle="modal" data-target="#RestartDialog">{{_('Restart')}}</div>
+      <div class="btn btn-danger" id="admin_stop" data-toggle="modal" data-target="#ShutdownDialog">{{_('Shutdown')}}</div>
+      {% if config.schedule_metadata_backup %}
+      <div class="btn btn-default" id="metadata_backup" data-toggle="modal" data-target="#StatusDialog">{{_('Queue all books for metadata backup')}}</div>
+      {% endif %}
+    </div>
   </div>
-  <div class="row form-group">
-    <div class="btn btn-default" id="restart_database" data-toggle="modal" data-target="#StatusDialog">{{_('Reconnect Calibre Database')}}</div>
-  </div>
-  <div class="row form-group">
-    <div class="btn btn-default" id="admin_restart" data-toggle="modal" data-target="#RestartDialog">{{_('Restart')}}</div>
-    <div class="btn btn-default" id="admin_stop" data-toggle="modal" data-target="#ShutdownDialog">{{_('Shutdown')}}</div>
-  </div>
-{% if config.schedule_metadata_backup %}
-  <div class="row form-group">
-    <div class="btn btn-default" id="metadata_backup" data-toggle="modal" data-target="#StatusDialog">{{_('Queue all books for metadata backup')}}</div>
-  </div>
-{%  endif %}
   <div class="row">
     <div class="col">
       <h2>{{_('Version Information')}}</h2>

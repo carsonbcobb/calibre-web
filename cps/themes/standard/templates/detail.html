@@ -1,4 +1,7 @@
 {% extends is_xhr|yesno("fragment.html", theme("layout.html")) %}
+{% from 'cw_icons.html' import icon %}
+{% from 'cw_score.html' import score %}
+{% import 'library_card.html' as cards %}
 {% block header %}
     <meta property="og:type" content="book" />
     <meta property="og:title" content="{{ entry.title|truncate(35) }}" />
@@ -8,361 +11,355 @@
     {% endif %}
 {% endblock %}
 {% block body %}
-<div class="single">
-    <div class="row">
-        <div class="col-sm-3 col-lg-3 col-xs-5">
-            <div class="cover">
-                <!-- Always use full-sized image for the detail page -->
-                <img id="detailcover" title="{{ entry.title }}"
-                     src="{{ url_for('web.get_cover', book_id=entry.id, resolution='og', c=entry|last_modified) }}"/>
-            </div>
+<div class="cw-book-page">
+  <div class="cw-book-wash" style="--cw-cover: url('{{ url_for('web.get_cover', book_id=entry.id, resolution='og', c=entry|last_modified) }}')" aria-hidden="true">
+    <div class="cw-book-wash-photo"></div>
+    <div class="cw-book-wash-fade"></div>
+  </div>
+<div class="single cw-book">
+  <div class="cw-book-frame">
+    <section class="cw-book-hero">
+      <div class="cw-book-layout">
+        <div class="cw-cover-col">
+          <div class="cw-detail-cover">
+            <img id="detailcover" title="{{ entry.title }}" alt=""
+                 src="{{ url_for('web.get_cover', book_id=entry.id, resolution='og', c=entry|last_modified) }}" width="220" height="330"/>
+          </div>
         </div>
-        <div class="col-sm-9 col-lg-9 book-meta">
-            <div class="btn-toolbar library-book-actions" role="toolbar">
-                {% if current_user.role_download() and current_user.kindle_mail and entry.email_share_list %}
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    {% set send = entry.email_share_list[0] %}
-                    <button type="button" id="sendbtn" class="btn library-send-kindle sendbtn-form" data-href="{{ url_for('web.send_to_ereader', book_id=entry.id, book_format=send['format'], convert=send['convert']) }}">
-                        {{ _('Send to Kindle') }}
-                    </button>
-                {% endif %}
-                {% if current_user.role_admin() %}
-                <div class="btn-group library-admin-actions" role="group" aria-label="More actions">
-                    {% if current_user.role_download() %}
-                        {% if entry.data|length %}
-                            <div class="btn-group" role="group">
-                                {% if entry.data|length < 2 %}
-                                    <button id="Download" type="button" class="btn btn-primary">
-                                        {{ _('Download') }} :
-                                    </button>
-                                    {% for format in entry.data %}
-                                        <a href="{{ url_for('web.download_link', book_id=entry.id, book_format=format.format|lower, anyname=entry.id|string+'.'+format.format|lower|replace('kepub', 'kepub.epub')) }}"
-                                           id="btnGroupDrop1{{ format.format|lower }}" class="btn btn-primary"
-                                           role="button">
-                                            <span class="glyphicon glyphicon-download"></span>{{ format.format }}
-                                            ({{ format.uncompressed_size|filesizeformat }})
-                                        </a>
-                                    {% endfor %}
-                                {% else %}
-                                    <button id="btnGroupDrop1" type="button" class="btn btn-primary dropdown-toggle"
-                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                        <span class="glyphicon glyphicon-download"></span> {{ _('Download') }}
-                                        <span class="caret"></span>
-                                    </button>
-                                    <ul class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-                                        {% for format in entry.data %}
-                                            <li>
-                                                <a href="{{ url_for('web.download_link', book_id=entry.id, book_format=format.format|lower, anyname=entry.id|string+'.'+format.format|lower|replace('kepub', 'kepub.epub')) }}">{{ format.format }}
-                                                    ({{ format.uncompressed_size|filesizeformat }})</a></li>
-                                        {% endfor %}
-                                    </ul>
-                                {% endif %}
-                            </div>
-                        {% endif %}
-                    {% endif %}
-                    {% if entry.reader_list and current_user.role_viewer() %}
-                        <div class="btn-group" role="group">
-                            {% if entry.reader_list|length > 1 %}
-                                <button id="read-in-browser" type="button" class="btn btn-primary dropdown-toggle"
-                                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <span class="glyphicon glyphicon-book"></span> {{ _('Read in Browser') }}
-                                    <span class="caret"></span>
-                                </button>
-                                <ul class="dropdown-menu" aria-labelledby="read-in-browser">
-                                    {% for format in entry.reader_list %}
-                                        <li><a target="_blank"
-                                               href="{{ url_for('web.read_book', book_id=entry.id, book_format=format) }}">{{ format }}</a>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            {% else %}
-                                <a target="_blank"
-                                   href="{{ url_for('web.read_book', book_id=entry.id, book_format=entry.reader_list[0]) }}"
-                                   id="readbtn" class="btn btn-primary" role="button"><span
-                                        class="glyphicon glyphicon-book"></span> {{ _('Read in Browser') }}
-                                    {{ entry.reader_list[0] }}</a>
-                            {% endif %}
-                        </div>
-                    {% endif %}
-                    {% if entry.audio_entries|length > 0 and current_user.role_viewer() %}
-                        <div class="btn-group" role="group">
-                            {% if entry.audio_entries|length > 1 %}
-                                <button id="listen-in-browser" type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <span class="glyphicon glyphicon-music"></span> {{ _('Listen in Browser') }}
-                                    <span class="caret"></span>
-                                </button>
-                                <ul class="dropdown-menu" aria-labelledby="listen-in-browser">
-                                    {% for format in entry.reader_list %}
-                                        <li><a target="_blank" href="{{ url_for('web.read_book', book_id=entry.id, book_format=format) }}">{{ format }}</a>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                                <ul class="dropdown-menu" aria-labelledby="listen-in-browser">
-
-                                    {% for format in entry.data %}
-                                        {% if format.format|lower in entry.audio_entries %}
-                                            <li><a target="_blank"
-                                                   href="{{ url_for('web.read_book', book_id=entry.id, book_format=format.format|lower) }}">{{ format.format|lower }}</a>
-                                            </li>
-                                        {% endif %}
-                                    {% endfor %}
-                                </ul>
-                            {% else %}
-                                <a target="_blank" href="{{ url_for('web.read_book', book_id=entry.id, book_format=entry.audio_entries[0]) }}" id="listenbtn" class="btn btn-primary" role="button"><span class="glyphicon glyphicon-music"></span> {{ _('Listen in Browser') }} {{ entry.audio_entries[0] }}</a>
-                            {% endif %}
-                        </div>
-                    {% endif %}
-                </div>
-                {% endif %}
-            </div>
-            <h2 id="title">{{ entry.title }}</h2>
-            {% if library_read_bits(entry.id) %}
-            <p class="library-read-time">{{ library_read_bits(entry.id) }}</p>
-            {% endif %}
-            {% if library_rating_bits(entry.id) %}
-            <p class="library-rating">{{ library_rating_bits(entry.id) }}</p>
-            {% endif %}
-            <p class="author">
-                {% for author in entry.ordered_authors %}
-                    <a href="{{ url_for('web.books_list',  data='author', sort_param='stored', book_id=author.id ) }}">{{ author.name.replace('|',',') }}</a>
-                    {% if not loop.last %}
-                        &amp;
-                    {% endif %}
+        <div class="cw-book-copy">
+          {% set profile = library_hardcover(entry.id) %}
+          {% if entry.series|length > 0 %}
+          <p class="cw-series-kicker">
+            <a href="{{ url_for('web.books_list', data='series', sort_param='stored', book_id=entry.series[0].id) }}">{{ entry.series[0].name }}</a>, {{ _('Book %(num)s', num=entry.series_index|formatfloat(2)) }}
+          </p>
+          {% elif profile and profile.series_name %}
+          <p class="cw-series-kicker">{{ profile.series_name }}{% if profile.series_position %}, {{ _('book %(num)s', num=profile.series_position) }}{% endif %}</p>
+          {% endif %}
+          <h2 id="title">{{ entry.title }}</h2>
+          <p class="author">
+            {% for author in entry.ordered_authors %}
+              <a href="{{ url_for('web.books_list', data='author', sort_param='stored', book_id=author.id) }}">{{ author.name.replace('|',',') }}</a>{% if not loop.last %} &amp;{% endif %}
+            {% endfor %}
+          </p>
+          {% set accolade_tags = library_accolade_tags(entry.id) %}
+          {% if accolade_tags %}
+          <div class="cw-accolade-row">
+            {% for tag in accolade_tags[:3] %}
+            <span class="cw-accolade-tag is-{{ tag.tone }}">{{ icon(tag.icon) }}{{ tag.label }}</span>
+            {% endfor %}
+            {% if accolade_tags|length > 3 %}
+            <details class="cw-accolade-more">
+              <summary>+{{ accolade_tags|length - 3 }}</summary>
+              <div class="cw-accolade-pop">
+                {% for tag in accolade_tags[3:] %}
+                <span class="cw-accolade-tag is-{{ tag.tone }}">{{ icon(tag.icon) }}{{ tag.label }}</span>
                 {% endfor %}
-            </p>
-            {% if entry.ratings.__len__() > 0 %}
-                <div class="rating">
-                    <p>
-                        {% for number in range((entry.ratings[0].rating/2)|int(2)) %}
-                            <span class="glyphicon glyphicon-star good"></span>
-                            {% if loop.last and loop.index < 5 %}
-                                {% for numer in range(5 - loop.index) %}
-                                    <span class="glyphicon glyphicon-star-empty"></span>
-                                {% endfor %}
-                            {% endif %}
-                        {% endfor %}
-                    </p>
-                </div>
+              </div>
+            </details>
             {% endif %}
-            {% if entry.series|length > 0 %}
-                <p class="library-series-line">{{ _("Book %(index)s of %(range)s", index=entry.series_index|formatfloat(2), range=(url_for('web.books_list', data='series', sort_param='stored', book_id=entry.series[0].id)|escapedlink(entry.series[0].name))|safe) }}</p>
-                {% if series_books %}
-                <div class="library-series-list">
-                  <h3>{{ _('In this series') }}</h3>
-                  <div class="library-row-scroller">
-                    {% for book in series_books %}
-                    <a class="library-card{% if book.id == entry.id %} is-current{% endif %}" href="{{ url_for('web.show_book', book_id=book.id) }}">
-                      <span class="library-card-cover">
-                        <img src="{{ url_for('web.get_cover', book_id=book.id, resolution='md') }}" alt="{{ book.title }}" loading="lazy">
-                      </span>
-                      <span class="library-card-title">{{ _('Book %(num)s', num=library_series_number(book.series_index)) }}</span>
-                      <span class="library-card-author">{{ book.title }}</span>
-                    </a>
-                    {% endfor %}
-                  </div>
-                </div>
-                {% endif %}
+          </div>
+          {% endif %}
+          {% if profile and profile.moods %}
+          <div class="cw-mood-row">
+            {% for mood in profile.moods[:6] %}
+            <span class="cw-mood">{{ mood }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% set rating = library_rating_info(entry.id) %}
+          {% if rating or (profile and profile.readers) %}
+          <div class="cw-rating-line">
+            {% if rating %}{{ score(rating.value, rating.count, rating.source, 'page') }}{% endif %}
+            {% if profile and profile.readers %}
+            <span class="cw-reader-pill">{{ profile.readers_label }} {{ _('readers') }}{% if profile.ratings_label %}, {{ profile.ratings_label }} {{ _('ratings') }}{% endif %}</span>
             {% endif %}
-
+          </div>
+          {% endif %}
+          <div class="cw-chips cw-info-row">
+            {% set bits = library_read_bits(entry.id) %}
+            {% if bits %}
+              {% for part in bits.split(', ') %}
+                {% set clean = part|replace('~', '')|trim %}
+                <span class="cw-chip">{% if 'page' in clean %}{{ icon('book') }}{% else %}{{ icon('clock') }}{% endif %}{{ clean }}</span>
+              {% endfor %}
+            {% endif %}
             {% if entry.languages|length > 0 %}
-                <div class="languages">
-                    <p>
-                        <span class="label label-default">{{_('Language')}}: {% for language in entry.languages %}{{language.language_name}}{% if not loop.last %}, {% endif %}{% endfor %}</span>
-                    </p>
-                </div>
+              <span class="cw-chip">{{ icon('globe') }}{% for language in entry.languages %}{{ language.language_name }}{% if not loop.last %}, {% endif %}{% endfor %}</span>
             {% endif %}
-
-            {% if entry.identifiers|length > 0 %}
-                <div class="identifiers">
-                    <p>
-                        <span class="glyphicon glyphicon-link"></span>
-                        {% for identifier in entry.identifiers %}
-                            {% set identifier_link = identifier.__repr__() %}
-                            {% if identifier_link != identifier.val %}
-                                <a href="{{ identifier_link|escape }}" target="_blank" class="btn btn-xs btn-success"
-                                   role="button">{{ identifier.format_type() }}</a>
-                            {% else %}
-                                <span class="btn btn-xs btn-success" role="button">{{ identifier.format_type() }}</span>
-                            {% endif %}
-                        {% endfor %}
-                    </p>
-                </div>
-            {% endif %}
-
-            {% if entry.tags|length > 0 %}
-
-                <div class="tags">
-                    <p>
-                        <span class="glyphicon glyphicon-tags"></span>
-
-                        {% for tag in entry.tags %}
-                            <a href="{{ url_for('web.books_list', data='category', sort_param='stored', book_id=tag.id) }}"
-                               class="btn btn-xs btn-info" role="button">{{ tag.name }}</a>
-                        {% endfor %}
-                    </p>
-
-                </div>
-            {% endif %}
-
-            {% if entry.publishers|length > 0 %}
-                <div class="publishers">
-                    <p>
-				      <span>{{ _('Publisher') }}:
-				          <a href="{{ url_for('web.books_list', data='publisher', sort_param='stored', book_id=entry.publishers[0].id ) }}">{{ entry.publishers[0].name }}</a>
-				      </span>
-                    </p>
-                </div>
-            {% endif %}
-
-            {% if (entry.pubdate|string)[:10] != '0101-01-01' %}
-                <div class="publishing-date">
-                    <p>{{ _('Published') }}: {{ entry.pubdate|formatdate }} </p>
-                </div>
-            {% endif %}
-            {% if cc|length > 0 %}
-
-
-                {% for c in cc %}
-                    {% if entry['custom_column_' ~ c.id]|length > 0 %}
-                        <div class="real_custom_columns">
-                            {{ c.name }}:
-                            {% for column in entry['custom_column_' ~ c.id] %}
-                                {% if c.datatype == 'rating' %}
-                                    {{ (column.value / 2)|formatfloat }}
-                                {% else %}
-                                    {% if c.datatype == 'bool' %}
-                                        {% if column.value == true %}
-                                            <span class="glyphicon glyphicon-ok"></span>
-                                        {% else %}
-                                            <span class="glyphicon glyphicon-remove"></span>
-                                        {% endif %}
-                                    {% else %}
-                                        {% if c.datatype == 'float' %}
-                                            {{ column.value|formatfloat(2) }}
-                                        {% elif c.datatype == 'datetime' %}
-                                            {{ column.value|formatdate }}
-                                        {% elif c.datatype == 'comments' %}
-                                            {{ column.value|clean_string|safe }}
-                                        {% elif c.datatype == 'series' %}
-                                            {{ '%s [%s]' % (column.value, column.extra|formatfloat(2)) }}
-                                        {% elif c.datatype == 'text' %}
-                                            {{ column.value.strip() }}{% if not loop.last %}, {% endif %}
-                                        {% else %}
-                                            {{ column.value }}
-                                        {% endif %}
-                                    {% endif %}
-                                {% endif %}
-                            {% endfor %}
-
-                        </div>
-                    {% endif %}
-                {% endfor %}
+          </div>
+          <div class="cw-book-actions" data-flag-url="{{ url_for('library_ui.book_flags', book_id=entry.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="cw-action-line">
+            {% if current_user.role_download() and entry.email_share_list %}
+              {% set send = entry.email_share_list[0] %}
+              <button type="button" id="sendbtn" class="btn library-send-kindle sendbtn-form" data-href="{{ url_for('web.send_to_ereader', book_id=entry.id, book_format=send['format'], convert=send['convert']) }}">{{ icon('send') }}<span>{{ _('Send to Kindle') }}</span></button>
             {% endif %}
             {% if not current_user.is_anonymous %}
-
-                <div class="custom_columns">
-                    <p>
-                    <form id="have_read_form" action="{{ url_for('web.toggle_read', book_id=entry.id) }}"
-                          method="POST">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <label class="block-label">
-                            <input id="have_read_cb" type="checkbox"
-                                   {% if entry.read_status %}checked{% endif %}>
-                            <span data-toggle="tooltip" title="{{_('Mark Book as Read or Unread')}}">{{ _('Read') }}</span>
-                        </label>
-                    </form>
-                    </p>
-                    {% if current_user.check_visibility(32768) %}
-                        <p>
-                        <form id="archived_form" action="{{ url_for('web.toggle_archived', book_id=entry.id) }}"
-                              method="POST">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <label class="block-label">
-                                <input id="archived_cb" type="checkbox"
-                                       {% if entry.is_archived %}checked{% endif %}>
-                                <span data-toggle="tooltip" title="{{_('Mark Book as archived or not, to hide it in Calibre-Web and delete it from Kobo Reader')}}">{{ _('Archive') }}</span>
-                            </label>
-                        </form>
-                        </p>
-                    {% endif %}
-                </div>
+              {% set wanted = library_is_wanted(entry.id) %}
+              {% set favorited = library_is_favorite(entry.id) %}
+              <div class="cw-flag-row">
+              <button type="button" class="cw-flag{% if wanted %} is-on{% endif %}" data-kind="want" data-on="{{ '1' if wanted else '0' }}" aria-pressed="{{ 'true' if wanted else 'false' }}" aria-label="{{ _('Want to Read') }}" title="{{ _('Want to Read') }}" data-on-toast="{{ _('Added to Want to Read') }}" data-off-toast="{{ _('Removed from Want to Read') }}">
+                <span class="cw-flag-off">{{ icon('bookmark-plus') }}</span>
+                <span class="cw-flag-on">{{ icon('bookmark-check') }}</span>
+                <span class="cw-flag-label">{{ _('Want to Read') }}</span>
+              </button>
+              <button type="button" class="cw-flag{% if entry.read_status %} is-on{% endif %}" data-kind="finished" data-on="{{ '1' if entry.read_status else '0' }}" aria-pressed="{{ 'true' if entry.read_status else 'false' }}" aria-label="{{ _('Finished') }}" title="{{ _('Finished') }}" data-on-toast="{{ _('Marked as finished') }}" data-off-toast="{{ _('Marked as not finished') }}">
+                <span class="cw-flag-off">{{ icon('circle-check') }}</span>
+                <span class="cw-flag-on">{{ icon('circle-check-fill') }}</span>
+                <span class="cw-flag-label">{{ _('Finished') }}</span>
+              </button>
+              <button type="button" class="cw-flag{% if favorited %} is-on{% endif %}" data-kind="favorite" data-on="{{ '1' if favorited else '0' }}" aria-pressed="{{ 'true' if favorited else 'false' }}" aria-label="{{ _('Favorite') }}" title="{{ _('Favorite') }}" data-on-toast="{{ _('Added to Favorites') }}" data-off-toast="{{ _('Removed from Favorites') }}">
+                <span class="cw-flag-off">{{ icon('heart') }}</span>
+                <span class="cw-flag-on">{{ icon('heart-fill') }}</span>
+                <span class="cw-flag-label">{{ _('Favorite') }}</span>
+              </button>
+              </div>
             {% endif %}
-
-
+            </div>
+            {% if current_user.is_authenticated and current_user.role_download() and entry.email_share_list %}
+              {% set send = entry.email_share_list[0] %}
+              <button type="button" class="cw-send-friend" id="cw-send-friend" data-picker="{{ url_for('library_ui.friends_picker') }}" data-send="{{ url_for('library_ui.send_to_friends', book_id=entry.id) }}" data-format="{{ send['format'] }}" data-convert="{{ send['convert'] }}">{{ icon('user-plus') }}<span>{{ _('Send to a friend') }}</span></button>
+              <div class="cw-modal-back cw-friend-sheet" id="cw-friend-picker" hidden>
+                <div class="cw-modal" role="dialog" aria-modal="true" aria-labelledby="cw-friend-picker-title">
+                  <h2 id="cw-friend-picker-title">{{ _('Send to a friend') }}</h2>
+                  <input type="search" class="form-control cw-friend-search" placeholder="{{ _('Search friends') }}" hidden>
+                  <div class="cw-friend-picker-list"></div>
+                  <p class="cw-friend-none" hidden>{{ _('No friends yet') }} <a href="{{ url_for('library_ui.friends_page') }}">{{ _('Add friend') }}</a></p>
+                  <div class="cw-modal-actions">
+                    <button type="button" class="cw-modal-cancel" data-close="picker">{{ _('Cancel') }}</button>
+                    <button type="button" class="cw-friend-submit" id="cw-friend-send" disabled>{{ _('Send') }}</button>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+          </div>
             {% if entry.comments|length > 0 and entry.comments[0].text|length > 0 %}
-                <div class="comments">
-                    <h3 id="decription">{{ _('Description:') }}</h3>
-                    {{ entry.comments[0].text|clean_string|safe }}
-                </div>
+            <div class="cw-description" id="cw-about">
+              <h3 class="cw-kicker" id="decription">{{ _('About this book') }}</h3>
+              <div class="cw-about-body" id="cw-about-body">{{ library_about(entry.id, entry.comments[0].text|clean_string)|safe }}</div>
+              <button type="button" class="cw-read-more" id="cw-read-more" hidden>{{ _('Read more') }}</button>
+            </div>
+            {% elif profile and profile.description %}
+            <div class="cw-description" id="cw-about">
+              <h3 class="cw-kicker">{{ _('About this book') }}</h3>
+              <div class="cw-about-body">{{ profile.description }}</div>
+            </div>
             {% endif %}
 
+            {% set about_text = '' %}
+            {% if entry.comments|length > 0 %}
+            {% set about_text = entry.comments[0].text %}
+            {% elif profile and profile.description %}
+            {% set about_text = profile.description %}
+            {% endif %}
+            {% set quotes = library_quote_sections(entry.id, about_text) %}
+            {% if quotes.extra %}
+            <section class="cw-praise">
+              <h3 class="cw-kicker">{{ _('Critical praise') }}</h3>
+              <div class="cw-praise-row">
+                {% for item in quotes.extra %}
+                <blockquote class="cw-quote">
+                  <span class="cw-quote-mark" aria-hidden="true">&ldquo;</span>
+                  <p>{{ item.quote }}</p>
+                  {% if item.url %}
+                  <a class="cw-quote-pub" href="{{ item.url }}">{{ item.publication }}</a>
+                  {% else %}
+                  <span class="cw-quote-pub">{{ item.publication }}</span>
+                  {% endif %}
+                </blockquote>
+                {% endfor %}
+              </div>
+            </section>
+            {% endif %}
 
-            <div class="more-stuff">
+            {% if entry.identifiers|length > 0 or entry.tags|length > 0 %}
+            <div class="cw-meta">
+              {% if entry.identifiers|length > 0 %}
+                {% for identifier in entry.identifiers %}
+                  {% set identifier_name = identifier.format_type() %}
+                  {% if 'Open Library' not in identifier_name %}
+                  {% set identifier_link = identifier.__repr__() %}
+                  {% if identifier_link != identifier.val %}
+                    <a href="{{ identifier_link|escape }}" target="_blank" class="btn btn-xs">{{ identifier_name }}</a>
+                  {% else %}
+                    <span class="btn btn-xs">{{ identifier_name }}</span>
+                  {% endif %}
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+              {% if entry.tags|length > 0 %}
+                {% for tag in entry.tags %}
+                  <a href="{{ url_for('web.books_list', data='category', sort_param='stored', book_id=tag.id) }}" class="btn btn-xs">{{ tag.name }}</a>
+                {% endfor %}
+              {% endif %}
+            </div>
+            {% endif %}
 
-                {% if current_user.is_authenticated and current_user.role_admin() %}
-                    {% if current_user.shelf.all() or g.shelves_access %}
-                        <div id="shelf-actions" class="btn-toolbar" role="toolbar">
-                            <div class="btn-group dropup" role="group" aria-label="Add to shelves">
-                                <button id="add-to-shelf" type="button"
-                                        class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown"
-                                        aria-haspopup="true" aria-expanded="false">
-                                    <span class="glyphicon glyphicon-list"></span> {{ _('Add to shelf') }}
-                                    <span class="caret"></span>
-                                </button>
-                                <ul id="add-to-shelves" class="dropdown-menu" aria-labelledby="add-to-shelf">
-                                    {% for shelf in g.shelves_access %}
-                                        {% if not shelf.id in books_shelfs and ( not shelf.is_public or current_user.role_edit_shelfs() ) %}
-                                            <li>
-                                                <a data-href="{{ url_for('shelf.add_to_shelf', book_id=entry.id, shelf_id=shelf.id) }}"
-                                                   data-remove-href="{{ url_for('shelf.remove_from_shelf', book_id=entry.id, shelf_id=shelf.id) }}"
-                                                   data-shelf-action="add"
-                                                >
-                                                    {{ shelf.name }}{% if shelf.is_public == 1 %}
-                                                        {{ _('(Public)') }}{% endif %}
-                                                </a>
-                                            </li>
-                                        {% endif %}
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                            <div id="remove-from-shelves" class="btn-group" role="group"
-                                 aria-label="Remove from shelves">
-                                {% if books_shelfs %}
-                                    {% for shelf in g.shelves_access %}
-                                        {% if shelf.id in books_shelfs %}
-                                            <a data-href="{{ url_for('shelf.remove_from_shelf', book_id=entry.id, shelf_id=shelf.id) }}"
-                                               data-add-href="{{ url_for('shelf.add_to_shelf', book_id=entry.id, shelf_id=shelf.id) }}"
-                                               class="btn btn-sm btn-default" role="button"
-                                               data-shelf-action="remove"
-                                            >
-								              <span {% if not shelf.is_public or current_user.role_edit_shelfs() %}
-								                  class="glyphicon glyphicon-remove"
-								              {% endif %}></span> {{ shelf.name }}{% if shelf.is_public == 1 %} {{ _('(Public)') }}{% endif %}
-                                            </a>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endif %}
-                            </div>
-                            <div id="shelf-action-errors" class="pull-left" role="alert"></div>
-                        </div>
+            {% if cc|length > 0 %}
+              {% for c in cc %}
+                {% if entry['custom_column_' ~ c.id]|length > 0 %}
+                  <div class="real_custom_columns">
+                    {{ c.name }}:
+                    {% for column in entry['custom_column_' ~ c.id] %}
+                      {% if c.datatype == 'rating' %}
+                        {{ (column.value / 2)|formatfloat }}
+                      {% elif c.datatype == 'bool' %}
+                        {% if column.value == true %}{{ _('Yes') }}{% else %}{{ _('No') }}{% endif %}
+                      {% elif c.datatype == 'float' %}
+                        {{ column.value|formatfloat(2) }}
+                      {% elif c.datatype == 'datetime' %}
+                        {{ column.value|formatdate }}
+                      {% elif c.datatype == 'comments' %}
+                        {{ column.value|clean_string|safe }}
+                      {% elif c.datatype == 'series' %}
+                        {{ '%s [%s]' % (column.value, column.extra|formatfloat(2)) }}
+                      {% elif c.datatype == 'text' %}
+                        {{ column.value.strip() }}{% if not loop.last %}, {% endif %}
+                      {% else %}
+                        {{ column.value }}
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+
+            {% if current_user.is_authenticated and current_user.role_admin() and (current_user.shelf.all() or g.shelves_access) %}
+            <div id="shelf-actions" class="btn-toolbar cw-shelves" role="toolbar">
+              <div class="btn-group dropup" role="group">
+                <button id="add-to-shelf" type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  {{ _('Add to shelf') }}
+                </button>
+                <ul id="add-to-shelves" class="dropdown-menu" aria-labelledby="add-to-shelf">
+                  {% for shelf in g.shelves_access %}
+                    {% if not shelf.id in books_shelfs and ( not shelf.is_public or current_user.role_edit_shelfs() ) %}
+                      <li>
+                        <a data-href="{{ url_for('shelf.add_to_shelf', book_id=entry.id, shelf_id=shelf.id) }}"
+                           data-remove-href="{{ url_for('shelf.remove_from_shelf', book_id=entry.id, shelf_id=shelf.id) }}"
+                           data-shelf-action="add">
+                          {{ shelf.name }}{% if shelf.is_public == 1 %} {{ _('(Public)') }}{% endif %}
+                        </a>
+                      </li>
                     {% endif %}
-
+                  {% endfor %}
+                </ul>
+              </div>
+              <div id="remove-from-shelves" class="btn-group" role="group">
+                {% if books_shelfs %}
+                  {% for shelf in g.shelves_access %}
+                    {% if shelf.id in books_shelfs %}
+                      <a data-href="{{ url_for('shelf.remove_from_shelf', book_id=entry.id, shelf_id=shelf.id) }}"
+                         data-add-href="{{ url_for('shelf.add_to_shelf', book_id=entry.id, shelf_id=shelf.id) }}"
+                         class="btn btn-sm btn-default" role="button" data-shelf-action="remove">
+                        {{ shelf.name }}{% if shelf.is_public == 1 %} {{ _('(Public)') }}{% endif %}
+                      </a>
+                    {% endif %}
+                  {% endfor %}
                 {% endif %}
-                {% if current_user.role_admin() and current_user.role_edit() %}
-                    <div class="col-sm-12">
-                        <div class="btn-group" role="group" aria-label="Edit/Delete book">
-                            <a href="{{ url_for('edit-book.show_edit_book', book_id=entry.id) }}"
-                               class="btn btn-sm btn-primary" id="edit_book" role="button"><span
-                                    class="glyphicon glyphicon-edit"></span> {{ _('Edit Metadata') }}</a>
-                        </div>
-                        <div class="btn btn-default" data-back="{{ url_for('web.index') }}" id="back">{{_('Cancel')}}</div>
-                   </div>
-                {% endif %}
+              </div>
+              <div id="shelf-action-errors" class="pull-left" role="alert"></div>
+            </div>
+            {% endif %}
         </div>
-    </div>
+      </div>
+    </section>
+
+    {% if series_books %}
+    <section class="library-series-list cw-series">
+      <h3>{{ _('In this series') }}</h3>
+      <div class="cw-row-stage">
+        <button type="button" class="library-scroll cw-arrow cw-arrow-prev" data-dir="-1" aria-label="{{ _('Scroll back') }}">&#8249;</button>
+        <div class="library-row">
+          <div class="library-row-scroller">
+            {% for book in series_books %}
+              {{ cards.book_card(book, book.id == entry.id, true, true) }}
+            {% endfor %}
+          </div>
+        </div>
+        <button type="button" class="library-scroll cw-arrow cw-arrow-next" data-dir="1" aria-label="{{ _('Scroll forward') }}">&#8250;</button>
+      </div>
+    </section>
+    {% endif %}
+
+    {% if quotes is defined and quotes.featured %}
+    <section class="cw-feature-quote" aria-roledescription="carousel">
+      <div class="cw-feature-stage">
+        {% for item in quotes.featured %}
+        <blockquote class="cw-feature-slide{% if loop.first %} is-active{% endif %}">
+          <span class="cw-feature-mark" aria-hidden="true">&ldquo;</span>
+          <p>{{ item.quote }}</p>
+          {% if item.url %}
+          <a class="cw-feature-pub" href="{{ item.url }}">{{ item.publication }}</a>
+          {% else %}
+          <span class="cw-feature-pub">{{ item.publication }}</span>
+          {% endif %}
+        </blockquote>
+        {% endfor %}
+      </div>
+      {% if quotes.featured|length > 1 %}
+      <div class="cw-feature-nav">
+        <button type="button" class="cw-feature-next">{{ _('Next quote') }}</button>
+        <div class="cw-feature-dots">
+          {% for item in quotes.featured %}
+          <button type="button" class="cw-feature-dot{% if loop.first %} is-active{% endif %}" aria-label="{{ _('Quote %(num)s', num=loop.index) }}"></button>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% include 'library_comments.html' %}
+    {% set reader_reviews = library_reviews(entry.id) %}
+    {% if reader_reviews %}
+    <section class="cw-reader-reviews">
+      <h3 class="cw-kicker">{{ _('Reader reviews') }}</h3>
+      <p class="cw-review-source">{{ _('Hardcover') }}</p>
+      <div class="cw-review-list">
+        {% for review in reader_reviews %}
+        <article class="cw-review-card{% if loop.index > 5 %} is-extra{% endif %}">
+          <div class="cw-review-top">
+            <strong>{{ review.reviewer }}</strong>
+            {{ score(review.rating, none, review.source, 'card') }}
+            {% if review.date %}<span class="cw-review-date">{{ review.date }}</span>{% endif %}
+          </div>
+          <p>{{ review.excerpt }}</p>
+          {% if review.url %}
+          <a class="cw-review-link" href="{{ review.url }}">{{ _('Read full review on Hardcover') }}</a>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      {% if reader_reviews|length > 5 %}
+      <button type="button" class="cw-review-more">{{ _('Show more') }}</button>
+      {% endif %}
+    </section>
+    {% endif %}
+    {% if current_user.role_admin() %}
+    <p class="cw-admin-links">
+      {% if current_user.role_download() and entry.data|length %}
+        {% for format in entry.data %}
+        <a href="{{ url_for('web.download_link', book_id=entry.id, book_format=format.format|lower, anyname=entry.id|string+'.'+format.format|lower|replace('kepub', 'kepub.epub')) }}">{{ _('Download') }} {{ format.format }}</a>
+        {% endfor %}
+      {% endif %}
+      {% if entry.reader_list and current_user.role_viewer() %}
+        {% for format in entry.reader_list %}
+        <a target="_blank" href="{{ url_for('web.read_book', book_id=entry.id, book_format=format) }}">{{ _('Read in Browser') }} {{ format }}</a>
+        {% endfor %}
+      {% endif %}
+      {% if entry.audio_entries|length > 0 and current_user.role_viewer() %}
+        {% for format in entry.audio_entries %}
+        <a target="_blank" href="{{ url_for('web.read_book', book_id=entry.id, book_format=format) }}">{{ _('Listen in Browser') }} {{ format }}</a>
+        {% endfor %}
+      {% endif %}
+      {% if current_user.role_edit() %}
+        <a id="edit_book" href="{{ url_for('edit-book.show_edit_book', book_id=entry.id) }}">{{ _('Edit Metadata') }}</a>
+      {% endif %}
+    </p>
+    {% endif %}
+  </div>
 </div>
 </div>
-{% include 'library_comments.html' %}
 {% endblock %}
 
 {% block js %}
@@ -381,7 +378,30 @@
 </script>
 <script src="{{ url_for('static', filename='js/details.js') }}"></script>
 <script src="{{ url_for('static', filename='js/fullscreen.js') }}"></script>
-<script type="text/javascript">
+<script>
+(function () {
+  var body = document.getElementById("cw-about-body");
+  var button = document.getElementById("cw-read-more");
+  if (!body || !button) {
+    return;
+  }
+  Array.prototype.forEach.call(body.querySelectorAll("p"), function (paragraph) {
+    if (!paragraph.textContent.replace(/\u00a0/g, " ").trim() && !paragraph.querySelector("img")) {
+      paragraph.parentNode.removeChild(paragraph);
+    }
+  });
+  body.innerHTML = body.innerHTML.replace(/(?:<br\s*\/?>\s*){2,}/gi, "<br>");
+  body.classList.add("is-clamped");
+  if (body.scrollHeight > body.clientHeight + 8) {
+    button.hidden = false;
+  } else {
+    body.classList.remove("is-clamped");
+  }
+  button.addEventListener("click", function () {
+    var clamped = body.classList.toggle("is-clamped");
+    button.textContent = clamped ? "{{ _('Read more') }}" : "{{ _('Show less') }}";
+  });
+})();
 </script>
 
 {% endblock %}

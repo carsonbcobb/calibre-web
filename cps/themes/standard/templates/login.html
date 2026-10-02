@@ -1,27 +1,12 @@
 {% extends theme("layout.html") %}
 {% block body %}
 <div class="library-login">
-  <div class="library-login-collage" aria-hidden="true">
-    {% if library_login_covers %}
-      {% for cover in library_login_covers %}
-        <img src="{{ cover }}" alt="" loading="lazy">
-      {% endfor %}
-    {% else %}
-      {% for n in range(12) %}
-        <span class="library-login-spine"></span>
-      {% endfor %}
-    {% endif %}
-  </div>
+  {% if library_login_collage %}
+  <div class="library-login-collage" id="cw-login-collage" data-url="{{ url_for('library_ui.login_covers') }}" aria-hidden="true"></div>
+  {% endif %}
   <div class="library-login-shade"></div>
   <div class="library-login-card">
-    {% if library_logo_url %}
-    <div class="library-login-logo">
-      <img src="{{ library_logo_url }}" alt="{{ instance }}">
-    </div>
-    {% else %}
     <h1 class="library-login-title">{{ instance }}</h1>
-    {% endif %}
-    <p class="library-login-lead">{{ _('Sign in to your library') }}</p>
     {% if error %}
     <div class="alert alert-danger">{{ error }}</div>
     {% endif %}

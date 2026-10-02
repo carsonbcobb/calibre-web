@@ -19,26 +19,44 @@ from flask_babel import gettext as _
 from .logger_helper import log
 from .models import LibraryBookStat
 
-WORDS_PER_MINUTE = 250
+# Comfortable fiction pace. 250 words a minute was reading like a sprint.
+WORDS_PER_MINUTE = 175
 WORDS_PER_PAGE = 250
 _SKIP_EPUB = ("toc", "nav", "cover", "titlepage")
 
 
 def read_bits(book_id):
-    """Short label for cards, such as 320 pages, ~6 hr 20 min."""
+    """Short label for cards, such as 320 pages, ~9 hr 8 min."""
     stat = _cached(book_id)
-    if stat is None:
+    pages = stat.page_count if stat is not None else None
+    if not pages:
+        pages = _hardcover_pages(book_id)
+    if stat is None and not pages:
         return ""
     parts = []
-    if stat.page_count:
-        if stat.page_count == 1:
+    if pages:
+        if pages == 1:
             parts.append(_("1 page"))
         else:
-            parts.append(_("%(count)s pages", count=stat.page_count))
-    label = _time_label(stat.word_count)
+            parts.append(_("%(count)s pages", count=pages))
+    label = _time_label(stat.word_count) if stat is not None else ""
     if label:
         parts.append(label)
     return ", ".join(parts)
+
+
+def _hardcover_pages(book_id):
+    try:
+        from .. import ub
+        from .models import HardcoverBook
+        row = (ub.session.query(HardcoverBook)
+               .filter(HardcoverBook.book_id == int(book_id))
+               .one_or_none())
+    except Exception:
+        return None
+    if row is None or row.error or not row.pages:
+        return None
+    return int(row.pages)
 
 
 def scan_book(book_id):

@@ -1,0 +1,54 @@
+{% from 'cw_icons.html' import icon %}
+{% from 'cw_score.html' import score %}
+{% from 'library_card.html' import series_stack %}
+{% macro panel(discover_cards) -%}
+{% if discover_cards %}
+{% set spotlight = discover_cards[1] if discover_cards|length > 1 else discover_cards[0] %}
+<section class="cw-discover" id="cw-discover" aria-labelledby="discover-heading">
+  <div class="cw-discover-bg is-visible" style="background-image: url('{{ spotlight.cover }}')"></div>
+  <div class="cw-discover-bg"></div>
+  <div class="cw-discover-shade"></div>
+  <div class="cw-discover-grain" aria-hidden="true"></div>
+  <p class="cw-kicker cw-discover-kicker" id="discover-heading">{{ icon('shuffle') }}{{ _('Discover') }}</p>
+  <div class="cw-discover-inner">
+    <div class="cw-discover-detail">
+      <h3 class="cw-discover-book"><a class="cw-hero-title-link" data-field="title" href="{{ spotlight.url }}">{{ spotlight.title }}</a></h3>
+      <p class="cw-discover-author" data-field="author">{{ spotlight.author }}</p>
+      <p class="cw-discover-series" data-field="series"{% if not spotlight.series %} hidden{% endif %}>{{ spotlight.series }}</p>
+      <div class="cw-chips">
+        <span class="cw-chip" data-chip="pages"{% if not spotlight.pages %} hidden{% endif %}>{{ icon('book') }}<span data-field="pages">{{ spotlight.pages }}</span></span>
+        <span class="cw-chip" data-chip="read_time"{% if not spotlight.read_time %} hidden{% endif %}>{{ icon('clock') }}<span data-field="read_time">{{ spotlight.read_time }}</span></span>
+        <span class="cw-chip cw-chip-score" data-chip="rating"{% if not spotlight.rating %} hidden{% endif %}>{% if spotlight.rating %}{{ score(spotlight.rating, spotlight.rating_count, spotlight.rating_source, 'page') }}{% endif %}</span>
+      </div>
+      <p class="cw-discover-blurb" data-field="blurb"{% if not spotlight.blurb %} hidden{% endif %}>{{ spotlight.blurb }}</p>
+      <p class="cw-source" data-field="source"{% if not spotlight.source_name %} hidden{% endif %}>{% if spotlight.source_url %}<a data-field="source-link" href="{{ spotlight.source_url }}">{{ _('Source: %(name)s', name=spotlight.source_name) }}</a>{% else %}<span data-field="source-label">{{ _('Source: %(name)s', name=spotlight.source_name or '') }}</span>{% endif %}</p>
+      <div class="cw-accolade-row" data-field="accolades"{% if not spotlight.accolades %} hidden{% endif %}>
+        {% for tag in (spotlight.accolades or [])[:2] %}
+        <span class="cw-accolade-tag is-{{ tag.tone }}">{{ icon(tag.icon) }}{{ tag.label }}</span>
+        {% endfor %}
+      </div>
+      <div class="cw-discover-actions">
+        <a class="btn library-send-kindle" data-field="view" href="{{ spotlight.url }}"{% if spotlight.kind != 'series' %} hidden{% endif %}>{{ icon('layers') }}<span>{{ spotlight.view_label or _('View series') }}</span></a>
+        <button type="button" class="btn library-send-kindle" data-field="send" data-href="{{ spotlight.send }}" data-toast="{{ spotlight.send_toast or '' }}"{% if spotlight.kind == 'series' or not spotlight.send %} hidden{% endif %}>{{ icon('send') }}<span>{{ _('Send to Kindle') }}</span></button>
+      </div>
+    </div>
+    <div class="cw-discover-fan">
+      {% for card in discover_cards %}
+      <link rel="preload" as="image" href="{{ card.cover }}">
+      {% set slot = 1 if discover_cards|length == 1 else loop.index0 %}
+      <button type="button" class="cw-discover-cover{% if card.kind == 'series' %} is-series{% endif %}" data-slot="{{ slot }}" data-layer="{{ slot }}" data-id="{{ card.id }}" aria-label="{{ card.title }}">
+        <span class="cw-discover-cover-lift">
+          {% if card.kind == 'series' and card.covers %}
+          {{ series_stack(card.covers, true) }}
+          {% else %}
+          <img src="{{ card.cover }}" alt="" width="150" height="225" decoding="sync" fetchpriority="high">
+          {% endif %}
+        </span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+  <script type="application/json" id="cw-discover-data">{{ discover_cards|tojson }}</script>
+</section>
+{% endif %}
+{%- endmacro %}

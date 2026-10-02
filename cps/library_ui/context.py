@@ -11,7 +11,7 @@
 from .branding import asset_urls
 from .css_sanitize import sanitize_css
 from .genres import bar_context
-from .login_collage import collage_ids
+from .login_collage import covers_enabled
 from .series_books import series_number
 from .store import get_setting
 
@@ -29,17 +29,17 @@ def library_context():
         "library_custom_css": custom_css,
         "library_logo_url": urls.get("logo") or "",
         "library_favicon_url": urls.get("favicon") or "",
-        "library_login_covers": _login_cover_urls(),
+        "library_login_collage": _login_collage_on(),
         "library_series_number": series_number,
         **bar_context(),
     }
 
 
-def _login_cover_urls():
+def _login_collage_on():
     try:
-        from flask import request, url_for
+        from flask import request
         if request.endpoint not in ("web.login", "web.login_post"):
-            return []
-        return [url_for("library_ui.login_cover", slot=slot) for slot in range(len(collage_ids()))]
+            return False
+        return covers_enabled()
     except Exception:
-        return []
+        return False

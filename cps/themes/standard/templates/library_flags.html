@@ -1,0 +1,18 @@
+{% extends theme("layout.html") %}
+{% import 'library_card.html' as cards %}
+{% block body %}
+<div class="library-home library-browse">
+  {% if entries %}
+  <section class="library-row-wrap">
+    <div class="library-row-head">
+      <h2>{{ title }}</h2>
+    </div>
+    <div class="cw-book-grid">
+      {% for book in entries %}
+      {{ cards.book_card(book) }}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

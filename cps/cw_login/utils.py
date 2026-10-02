@@ -182,6 +182,7 @@ def login_user(user, remember=False, duration=None, force=False, fresh=True):
         return False
 
     user_id = getattr(user, current_app.login_manager.id_attribute)()
+    session.permanent = True
     session["_user_id"] = user_id
     session["_fresh"] = fresh
     session["_id"] = current_app.login_manager._session_identifier_generator()
@@ -390,11 +391,12 @@ def _cookie_digest(payload, key=None):
 
 
 def _get_remote_addr():
-    address = request.headers.get("X-Forwarded-For", request.remote_addr)
+    # Use the address the server accepted. A client supplied forwarding
+    # header is applied only by the trusted proxy wrapper, so a phone or a
+    # tunnel cannot change the session id by sending the header itself.
+    address = request.remote_addr
     if address is not None:
-        # An 'X-Forwarded-For' header includes a comma separated list of the
-        # addresses, the first address being the actual remote address.
-        address = address.encode("utf-8").split(b",")[0].strip()
+        address = address.encode("utf-8")
     return address
 
 

@@ -1,0 +1,36 @@
+{% extends theme("layout.html") %}
+{% from 'library_hero.html' import stage as hero_stage %}
+{% from 'library_card.html' import series_stack %}
+{% block body %}
+<div class="library-home library-browse" id="cw-series-browser">
+  {% if hero %}
+  {{ hero_stage(hero) }}
+  {% endif %}
+  <div class="cw-series-tools">
+    <label class="sr-only" for="cw-series-search">{{ _('Find a series') }}</label>
+    <input class="form-control" id="cw-series-search" type="search" placeholder="{{ _('Find a series') }}" autocomplete="off">
+    <label class="cw-series-sort" for="cw-series-sort">{{ _('Sort') }}
+      <select class="form-control" id="cw-series-sort">
+        <option value="name">{{ _('Name') }}</option>
+        <option value="count">{{ _('Number of books') }}</option>
+        <option value="updated">{{ _('Recently updated') }}</option>
+      </select>
+    </label>
+    <label class="cw-check"><input type="checkbox" id="cw-series-progress"> {{ _('In progress') }}</label>
+    <label class="cw-check"><input type="checkbox" id="cw-series-new"> {{ _('Not started') }}</label>
+  </div>
+  <div class="cw-series-grid" id="cw-series-grid">
+    {% for item in series %}
+    <a class="cw-series-card{% if item.count == 1 %} is-single{% endif %}" href="{{ item.href }}" data-name="{{ item.name }}" data-count="{{ item.count }}" data-updated="{{ item.updated }}" data-state="{{ item.state }}">
+      {{ series_stack(item.covers) }}
+      <span class="cw-series-name">{{ item.name }}</span>
+      <span class="cw-series-progress" role="progressbar" aria-valuenow="{{ item.progress }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ item.progress_label }}"{% if not item.progress %} hidden{% endif %}><span style="width: {{ item.progress }}%"></span></span>
+      {% if item.author %}
+      <span class="cw-series-meta cw-series-author">{{ item.author }}</span>
+      {% endif %}
+      <span class="cw-series-meta cw-series-count">{{ item.count_label }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

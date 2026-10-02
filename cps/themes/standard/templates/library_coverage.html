@@ -1,0 +1,139 @@
+{% extends theme("layout.html") %}
+{% block body %}
+<div class="library-home cw-coverage">
+  <h1>{{ _('Library coverage') }}</h1>
+  <p class="cw-row-sub">{{ _('Generated %(when)s', when=report.generated) }}</p>
+  <p>{{ _('Books in the library: %(total)s. Books this account can see: %(visible)s. Books per page setting: %(page)s. Books with only generic tags: %(noise)s. Books with accolades: %(accolades)s. Books with quotes: %(quotes)s.', total=report.total, visible=report.visible, page=report.books_per_page, noise=report.noise_only, accolades=report.accolade_books, quotes=report.quote_books) }}</p>
+  <h2>{{ _('Ratings') }}</h2>
+  <p>{{ _('Ratings matched: %(matched)s of %(total)s. Still unmatched: %(unmatched)s.', matched=report.ratings.matched, total=report.ratings.total, unmatched=report.ratings.unmatched) }}</p>
+  <ul>
+    {% for book in report.ratings.books %}
+    <li>
+      {{ book.title }}:
+      {% for provider in book.providers %}
+        {{ provider.name }} {{ provider.status }}{% if provider.detail %} ({{ provider.detail }}){% endif %}{% if not loop.last %}; {% endif %}
+      {% endfor %}
+    </li>
+    {% endfor %}
+  </ul>
+  <h2>{{ _('Series descriptions') }}</h2>
+  <p>{{ _('%(real)s series have a real description.', real=report.series_info.real) }}</p>
+  {% if report.series_info.reasons %}
+  <p>{{ _('Top failure reasons:') }}</p>
+  <ul>
+    {% for reason in report.series_info.reasons %}
+    <li>{{ reason.name }}: {{ reason.count }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% for item in report.series_info.gaps %}
+  <h3>{{ item.name }}{% if item.author %} / {{ item.author }}{% endif %}</h3>
+  {% if item.providers %}
+  <ul>
+    {% for provider in item.providers %}
+    <li>{{ provider.name }}: {{ provider.reason }}{% if provider.query %}. Query: {{ provider.query }}{% endif %}{% if provider.results is not none %}. Results: {{ provider.results }}{% endif %}{% if provider.score is not none %}. Score: {{ provider.score }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="cw-row-sub">{{ _('No provider attempt stored yet.') }}</p>
+  {% endif %}
+  {% endfor %}
+  <h2>{{ _('Accolades') }}</h2>
+  {% if not report.accolades.nyt_key %}
+  <p class="cw-row-sub">{{ _('NYT Books API: no key set, so that provider is skipped.') }}</p>
+  {% endif %}
+  {% if report.accolades.reasons %}
+  <p>{{ _('Top failure reasons:') }}</p>
+  <ul>
+    {% for reason in report.accolades.reasons %}
+    <li>{{ reason.name }}: {{ reason.count }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if not report.accolades.scanned %}
+  <p>{{ _('No accolade scan report yet. Run Scan accolades from the admin page.') }}</p>
+  {% endif %}
+  {% for book in report.accolades.gaps %}
+  <h3>{{ book.title }}{% if book.author %} / {{ book.author }}{% endif %}</h3>
+  <p class="cw-row-sub">{{ book.identifiers or _('No identifiers') }}</p>
+  {% if book.providers %}
+  <ul>
+    {% for provider in book.providers %}
+    <li>{{ provider.name }}: {{ provider.reason }}{% if provider.query %}. Query: {{ provider.query }}{% endif %}{% if provider.results is not none %}. Results: {{ provider.results }}{% endif %}{% if provider.score is not none %}. Score: {{ provider.score }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% endfor %}
+  <ul>
+    {% for book in report.accolades.books %}
+    <li>
+      {{ book.title }}{% if book.has_accolade %}: {{ _('has a recognition') }}{% else %}: {{ _('no recognition') }}{% endif %}
+      {% if book.providers %}
+      <ul>
+        {% for provider in book.providers %}
+        <li>{{ provider.name }}: {% if provider.matched %}{{ _('matched') }}{% else %}{{ _('missed') }}{% endif %}{% if provider.identifier %} ({{ provider.identifier }}){% endif %}{% if provider.reason %}: {{ provider.reason }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if report.accolades.missing %}
+  <p>{{ _('Still without an accolade: %(titles)s', titles=report.accolades.missing|join(', ')) }}</p>
+  {% endif %}
+  <h2>{{ _('Pages') }}</h2>
+  {% for page in report.pages %}
+  <section class="cw-coverage-page">
+    <h3>{{ page.name }}</h3>
+    <p>{{ page.path }}</p>
+    <p>{{ _('Renders %(count)s distinct books. Never rendered here: %(missing)s.', count=page.rendered, missing=page.missing_count) }}</p>
+    {% if page.missing %}
+    <p class="cw-row-sub">{{ page.missing|join(', ') }}</p>
+    {% endif %}
+    <ul>
+      {% for row in page.rows %}
+      <li>
+        {{ row.name }}: {{ _('candidates %(candidates)s, kept %(kept)s', candidates=row.candidates if row.candidates is not none else _('n/a'), kept=row.kept) }}
+        {% if row.dropped %} ({{ row.dropped|join('; ') }}){% endif %}
+        {% if row.reasons %}
+        <ul>
+          {% for reason in row.reasons %}
+          <li>{{ reason }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+  <h2>{{ _('Shown on more than 3 rows') }}</h2>
+  {% if report.busy %}
+  <ul>
+    {% for book in report.busy %}
+    <li>{{ book.title }}: {{ book.count }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>{{ _('None') }}</p>
+  {% endif %}
+  <h2>{{ _('Shown nowhere') }}</h2>
+  {% if report.nowhere %}
+  <p>{{ report.nowhere|join(', ') }}</p>
+  {% else %}
+  <p>{{ _('Every visible book appears somewhere.') }}</p>
+  {% endif %}
+  <h2>{{ _('Sidebar lists') }}</h2>
+  <ul>
+    {% for row in report.lists %}
+    <li>{{ row.name }}: {{ row.ids|length }}</li>
+    {% endfor %}
+  </ul>
+  <h2>{{ _('Limits in the code') }}</h2>
+  <ul>
+    {% for item in report.limits %}
+    <li>{{ item.where }}: {{ item.kind }}, {{ item.value }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

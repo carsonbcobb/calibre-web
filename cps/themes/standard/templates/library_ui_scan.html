@@ -13,7 +13,7 @@
 
   <h2>{{ _('External ratings') }}</h2>
   <p class="text-muted">
-    {{ _('Open Library ratings are fetched without a key. Hardcover needs a token from your Hardcover account. The source name is shown next to each score. A Goodreads provider can be added later in the same list.') }}
+    {{ _('Public ratings are fetched without a key. Hardcover needs a token from your Hardcover account. The source name is shown next to each score. A Goodreads provider can be added later in the same list.') }}
   </p>
   <form method="POST" action="{{ url_for('library_ui.scan_reading') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -26,7 +26,144 @@
   </form>
   <form method="POST" action="{{ url_for('library_ui.scan_reading') }}" style="margin-top: 12px;">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="btn btn-primary" type="submit" name="action" value="ratings" id="fetch_ratings">{{ _('Fetch ratings') }}</button>
+    <button class="btn btn-primary" type="submit" name="action" value="ratings" id="fetch_ratings">{{ _('Rescan missing ratings') }}</button>
   </form>
+
+  <h3>{{ _('Manual rating') }}</h3>
+  <form method="POST" action="{{ url_for('library_ui.scan_reading') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="save_rating">
+    <div class="form-group">
+      <label for="rating_book">{{ _('Book id') }}</label>
+      <input class="form-control" id="rating_book" name="book_id" required>
+    </div>
+    <div class="form-group">
+      <label for="rating_value">{{ _('Rating from 1 to 5') }}</label>
+      <input class="form-control" id="rating_value" name="rating" required>
+    </div>
+    <button class="btn btn-default" type="submit">{{ _('Save rating') }}</button>
+  </form>
+
+  <h2>{{ _('Accolades and quotes') }}</h2>
+  <p class="text-muted">{{ _('The scan reads awards already recorded on Wikidata and phrases already written in each book description. Only awards, bestseller status, adaptations, and a few curated lists are kept. A manual entry stays when the scan runs again.') }}</p>
+  <form method="POST" action="{{ url_for('library_ui.scan_reading') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-primary" type="submit" name="action" value="accolades">{{ _('Scan accolades') }}</button>
+    <button class="btn btn-default" type="submit" name="action" value="series_info">{{ _('Scan series info') }}</button>
+    <button class="btn btn-default" type="submit" name="action" value="accolades_unmatched">{{ _('Rescan unmatched') }}</button>
+    <a class="btn btn-default" href="{{ url_for('library_ui.fill_gaps') }}">{{ _('Fill gaps') }}</a>
+    <button class="btn btn-default" type="submit" name="action" value="clean_accolades">{{ _('Remove generic lists') }}</button>
+  </form>
+  <form method="POST" action="{{ url_for('library_ui.scan_reading') }}" style="margin-top: 12px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="nyt_key">
+    <div class="form-group">
+      <label for="nyt_books_key">{{ _('NYT Books API key') }}</label>
+      <input class="form-control" id="nyt_books_key" name="nyt_books_key" type="password" value="" autocomplete="off" placeholder="{{ _('A key is saved') if nyt_key_set else '' }}">
+    </div>
+    <button class="btn btn-default" type="submit">{{ _('Save key') }}</button>
+  </form>
+
+  <h3>{{ _('Add an accolade') }}</h3>
+  <form method="POST" action="{{ url_for('library_ui.scan_reading') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="save_accolade">
+    <div class="form-group">
+      <label for="accolade_book">{{ _('Book id') }}</label>
+      <input class="form-control" id="accolade_book" name="book_id" required>
+    </div>
+    <div class="form-group">
+      <label for="accolade_type">{{ _('Type') }}</label>
+      <select class="form-control" id="accolade_type" name="type">
+        <option value="award_win">{{ _('Award win') }}</option>
+        <option value="award_nominee">{{ _('Nominee') }}</option>
+        <option value="bestseller">{{ _('Bestseller') }}</option>
+        <option value="list">{{ _('List') }}</option>
+        <option value="adaptation">{{ _('Adaptation') }}</option>
+        <option value="critical">{{ _('Critical') }}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="accolade_label">{{ _('Label') }}</label>
+      <input class="form-control" id="accolade_label" name="label" required>
+    </div>
+    <div class="form-group">
+      <label for="accolade_year">{{ _('Year') }}</label>
+      <input class="form-control" id="accolade_year" name="year">
+    </div>
+    <div class="form-group">
+      <label for="accolade_url">{{ _('Source link') }}</label>
+      <input class="form-control" id="accolade_url" name="source_url">
+    </div>
+    <button class="btn btn-default" type="submit">{{ _('Save accolade') }}</button>
+  </form>
+  {% if accolades %}
+  <ul>
+    {% for row in accolades %}
+    <li>
+      {{ row.label }} ({{ row.type }}{% if row.year %}, {{ row.year }}{% endif %}) {{ _('book') }} {{ row.book_id }}
+      <form method="POST" action="{{ url_for('library_ui.scan_reading') }}" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="delete_accolade">
+        <input type="hidden" name="row_id" value="{{ row.id }}">
+        <button class="btn btn-link" type="submit">{{ _('Delete') }}</button>
+      </form>
+      <form method="POST" action="{{ url_for('library_ui.scan_reading') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="save_accolade">
+        <input type="hidden" name="row_id" value="{{ row.id }}">
+        <input type="hidden" name="book_id" value="{{ row.book_id }}">
+        <input type="hidden" name="type" value="{{ row.type }}">
+        <input class="form-control" name="label" value="{{ row.label }}">
+        <input class="form-control" name="year" value="{{ row.year or '' }}">
+        <input class="form-control" name="source_url" value="{{ row.source_url or '' }}">
+        <button class="btn btn-default" type="submit">{{ _('Update') }}</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <h3>{{ _('Add a quote') }}</h3>
+  <form method="POST" action="{{ url_for('library_ui.scan_reading') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="save_quote">
+    <div class="form-group">
+      <label for="quote_book">{{ _('Book id') }}</label>
+      <input class="form-control" id="quote_book" name="book_id" required>
+    </div>
+    <div class="form-group">
+      <label for="quote_text">{{ _('Quote') }}</label>
+      <textarea class="form-control" id="quote_text" name="quote" required></textarea>
+    </div>
+    <div class="form-group">
+      <label for="quote_pub">{{ _('Publication') }}</label>
+      <input class="form-control" id="quote_pub" name="publication" required>
+    </div>
+    <div class="form-group">
+      <label for="quote_author">{{ _('Reviewer') }}</label>
+      <input class="form-control" id="quote_author" name="author">
+    </div>
+    <div class="form-group">
+      <label for="quote_url">{{ _('Source link') }}</label>
+      <input class="form-control" id="quote_url" name="url">
+    </div>
+    <button class="btn btn-default" type="submit">{{ _('Save quote') }}</button>
+  </form>
+  {% if quotes %}
+  <ul>
+    {% for row in quotes %}
+    <li>
+      {{ row.publication }}: {{ row.quote }}
+      <form method="POST" action="{{ url_for('library_ui.scan_reading') }}" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="delete_quote">
+        <input type="hidden" name="row_id" value="{{ row.id }}">
+        <button class="btn btn-link" type="submit">{{ _('Delete') }}</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
 </div>
 {% endblock %}

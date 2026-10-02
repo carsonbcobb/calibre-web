@@ -1,7 +1,10 @@
 {% extends theme("layout.html") %}
 {% block body %}
-<div class="discover">
+<div class="discover cw-form-page">
   <h1>{{title}}</h1>
+  {% if profile and current_user.role_admin() %}
+  <p class="cw-profile-admin"><a href="{{ url_for('admin.admin') }}">{{ _('Admin') }}</a></p>
+  {% endif %}
   <form role="form" method="POST" autocomplete="off">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="col-md-10 col-lg-8">

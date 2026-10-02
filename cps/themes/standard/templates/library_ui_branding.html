@@ -62,6 +62,24 @@
     </div>
   </div>
 
+  <div class="panel panel-default">
+    <div class="panel-heading">{{ _('Login page') }}</div>
+    <div class="panel-body">
+      <form method="POST" action="{{ url_for('library_ui.branding') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="login_covers">
+        <div class="checkbox">
+          <label for="show_login_covers">
+            <input type="checkbox" id="show_login_covers" name="show_login_covers" value="1"{% if login_covers %} checked{% endif %}>
+            {{ _('Show library covers on login page') }}
+          </label>
+        </div>
+        <p class="help-block">{{ _('When this is off, the login page uses a plain dark background.') }}</p>
+        <button type="submit" class="btn btn-primary" id="save_login_covers">{{ _('Save') }}</button>
+      </form>
+    </div>
+  </div>
+
   <p>
     <a class="btn btn-default" href="{{ url_for('admin.admin') }}">{{ _('Back to Admin') }}</a>
   </p>

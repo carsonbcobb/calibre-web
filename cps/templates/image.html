@@ -1,16 +1,24 @@
-{% macro book_cover(book, alt=None) -%}
+{% macro book_cover(book, alt=None, index_badge=false, eager=false) -%}
     {%- set image_title = book.title if book.title else book.name -%}
     {%- set image_alt = alt if alt else image_title -%}
     {% set srcset = book|get_cover_srcset %}
+    {% set cover_src = url_for('web.get_cover', book_id=book.id, resolution='og', c=book|last_modified) %}
     <img
+        class="cw-lazy{% if eager %} is-eager{% endif %}"
         srcset="{{ srcset }}"
-        src="{{ url_for('web.get_cover', book_id=book.id, resolution='og', c=book|last_modified) }}"
-        alt="{{ image_alt }}"
-        loading="lazy"
+        src="{{ cover_src }}"
+        alt=""
+        width="200"
+        height="300"
+        loading="{{ 'eager' if eager else 'lazy' }}"
         decoding="async"
+        onload="this.classList.add('is-ready')"
+        onerror="if(!this.dataset.retried){this.dataset.retried='1';this.src=this.getAttribute('src');}else{this.classList.add('is-ready');this.classList.add('is-broken');}"
     />
-    {% if book.series %}
-    <span class="library-series-badge">{{ _('Book %(num)s of %(name)s', num=book.series_index|formatfloat(2), name=book.series[0].name) }}</span>
+    <span class="cw-cover-fallback" aria-hidden="true"><span class="cw-cover-fallback-title">{{ image_title }}</span>{% if book.authors %}<span class="cw-cover-fallback-author">{{ book.authors[0].name.replace('|', ',') }}</span>{% endif %}</span>
+    {% if index_badge and book.series %}
+    {% set series_label = book.series_index|formatfloat(2) %}
+    <span class="library-series-badge{% if series_label == '1' %} is-first{% endif %}">{{ _('Book %(num)s', num=series_label) }}</span>
     {% endif %}
 {%- endmacro %}
 

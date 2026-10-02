@@ -20,7 +20,7 @@ def send_choice(book):
         return None
     if getattr(current_user, "is_anonymous", False):
         return None
-    if not current_user.role_download() or not (current_user.kindle_mail or "").strip():
+    if not current_user.role_download():
         return None
     from ..helper import check_send_to_ereader
     try:

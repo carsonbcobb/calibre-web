@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 {% from theme('modal_dialogs.html') import restrict_modal, delete_book, filechooser_modal, delete_confirm_modal, change_confirm_modal %}
+{% from 'cw_icons.html' import icon, nav_icon %}
 {% import 'image.html' as image %}
 <html lang="{{ current_user.locale }}">
   <head>
     <title>{{instance}} | {{title}}</title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="mobile-web-app-capable" content="yes">
     {% if g.google_site_verification|length > 0 %}
@@ -31,125 +32,154 @@
     {% if library_custom_css %}
     <style id="library-custom-css">{{ library_custom_css|safe }}</style>
     {% endif %}
+    <link href="{{ url_for('static', filename='css/custom_theme.css') }}?v=16" rel="stylesheet" media="screen">
   </head>
   <body class="{{ page }} {{ bodyClass }}">
-    <!-- Static navbar -->
     <div class="navbar navbar-default navbar-static-top library-topnav" role="navigation">
-      <div class="container-fluid">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-            <span class="sr-only">{{_('Toggle Navigation')}}</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
+      <div class="cw-nav">
+        <div class="cw-nav-start">
+          <button type="button" class="cw-nav-btn cw-menu-btn" id="cw-sidebar-toggle" aria-label="{{ _('Toggle Navigation') }}">
+            {{ icon('menu') }}
           </button>
-          <a class="navbar-brand" href="{{url_for('web.index')}}">{% if library_logo_url %}<img class="library-brand-logo" src="{{ library_logo_url }}" alt="">{% endif %}{{instance}}</a>
+          <a class="navbar-brand" href="{{url_for('web.index')}}">
+            <span class="cw-wordmark"><span class="cw-wordmark-text">{{ instance }}</span></span>
+          </a>
         </div>
         {% if current_user.is_authenticated or g.allow_anonymous %}
-          <form class="navbar-form navbar-left library-search" role="search" action="{{url_for('search.simple_search')}}" method="GET">
-            <div class="form-group input-group input-group-sm">
-              <label for="query" class="sr-only">{{_('Search')}}</label>
-              <input type="text" class="form-control" id="query" name="query" placeholder="{{_('Search Library')}}" value="{{searchterm}}" autocomplete="off" data-suggest="{{ url_for('library_ui.suggest_books') }}">
-              <span class="input-group-btn">
-                <button type="submit" id="query_submit" class="btn btn-default">{{_('Search')}}</button>
-              </span>
-            </div>
+          <form class="library-search" role="search" action="{{url_for('search.simple_search')}}" method="GET">
+            <label for="query" class="sr-only">{{_('Search')}}</label>
+            <span class="cw-search-icon">{{ icon('search') }}</span>
+            <input type="text" class="form-control" id="query" name="query" placeholder="{{_('Search Library')}}" value="{{searchterm}}" autocomplete="off" data-suggest="{{ url_for('library_ui.suggest_books') }}">
+            {% if current_user.role_admin() %}
+            <a class="cw-search-advanced" id="advanced_search" href="{{url_for('search.advanced_search')}}" title="{{ _('Advanced') }}">{{ icon('sliders-horizontal') }}<span class="sr-only">{{ _('Advanced') }}</span></a>
+            {% endif %}
+            <button type="button" class="cw-nav-btn cw-search-close" id="cw-search-close" aria-label="{{ _('Close') }}">{{ icon('x') }}</button>
             <div class="library-suggest" id="library-suggest" hidden></div>
           </form>
         {% endif %}
-        <div class="navbar-collapse collapse">
+        <div class="cw-nav-end" id="main-nav">
           {% if current_user.is_authenticated or g.allow_anonymous %}
-          <ul class="nav navbar-nav ">
-            {% if current_user.role_admin() %}
-            <li><a href="{{url_for('search.advanced_search')}}" id="advanced_search"><span class="glyphicon glyphicon-search"></span><span class="hidden-sm"> {{_('Advanced Search')}}</span></a></li>
-            {% endif %}
-            {% if simple==true %} <li><a href="{{url_for('basic.index')}}" id="basic"><span class="glyphicon glyphicon-phone"></span><span>{{_('Simple Theme')}}</span></a><li>{% endif %}
-          </ul>
+          <button type="button" class="cw-nav-btn cw-search-open" id="cw-search-open" aria-label="{{ _('Search') }}">{{ icon('search') }}</button>
           {% endif %}
-          <ul class="nav navbar-nav navbar-right" id="main-nav">
-            {% if current_user.is_authenticated or g.allow_anonymous %}
-              {% if current_user.role_upload() and g.allow_upload %}
-                  <li>
-                    <form id="form-upload" class="navbar-form" action="{{ url_for('edit-book.upload') }}" data-title="{{_('Uploading...')}}" data-footer="{{_('Close')}}" data-failed="{{_('Error')}}" data-message="{{_('Upload done, processing, please wait...')}}" method="post" enctype="multipart/form-data">
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <div class="form-group">
-                        <span class="btn btn-default btn-file">{{_('Upload')}}<input id="btn-upload" name="btn-upload"
-                        type="file" accept="{% for format in accept %}.{% if format != ''%}{{format}}{% else %}*{% endif %}{{ ',' if not loop.last }}{% endfor %}" multiple></span>
-                        <input class="hide" id="btn-upload2" name="btn-upload2" type="file" accept="{% for format in accept %}.{% if format != ''%}{{format}}{% else %}*{% endif %}{{ ',' if not loop.last }}{% endfor %}">
-                      </div>
-                    </form>
-                  </li>
-              {% endif %}
-              {% if current_user.role_admin() and not current_user.is_anonymous and not simple%}
-                <li class="top_tasks"><a id="top_tasks" href="{{url_for('tasks.get_tasks_status')}}"><span class="glyphicon glyphicon-tasks"></span> <span class="hidden-sm">{{_('Tasks')}}</span></a></li>
-              {% endif %}
-              {% if current_user.role_admin() %}
-                <li><a id="top_admin" href="{{url_for('admin.admin')}}"><span class="glyphicon glyphicon-dashboard"></span> <span class="hidden-sm">{{_('Admin')}}</span></a></li>
-              {% endif %}
-              <li><a id="top_user" href="{% if not current_user.is_anonymous %}{{url_for('web.profile')}}{% else %}{{url_for('web.login', next=(request.path + "?" + request.query_string.decode("utf-8")).rstrip("?"))}}{% endif %}"><span class="glyphicon glyphicon-user"></span> <span class="hidden-sm">{{current_user.name}}</span></a></li>
-                {% if not current_user.is_anonymous %}
-                <li><a id="logout" href="{{url_for('web.logout', next=(request.path + "?" + request.query_string.decode("utf-8")).rstrip("?"))}}"><span class="glyphicon glyphicon-log-out"></span> <span class="hidden-sm">{{_('Logout')}}</span></a></li>
-                {% endif %}
+          {% if current_user.is_authenticated or g.allow_anonymous %}
+            {% if current_user.role_upload() and g.allow_upload %}
+              <form id="form-upload" class="cw-upload" action="{{ url_for('edit-book.upload') }}" data-title="{{_('Uploading...')}}" data-footer="{{_('Close')}}" data-failed="{{_('Error')}}" data-message="{{_('Upload done, processing, please wait...')}}" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="cw-nav-btn btn-file" title="{{ _('Upload') }}">
+                  {{ icon('upload') }}
+                  <span class="sr-only">{{ _('Upload') }}</span>
+                  <input id="btn-upload" name="btn-upload" type="file" accept="{% for format in accept %}.{% if format != ''%}{{format}}{% else %}*{% endif %}{{ ',' if not loop.last }}{% endfor %}" multiple>
+                </label>
+                <input class="hide" id="btn-upload2" name="btn-upload2" type="file" accept="{% for format in accept %}.{% if format != ''%}{{format}}{% else %}*{% endif %}{{ ',' if not loop.last }}{% endfor %}">
+              </form>
             {% endif %}
-            {% if g.allow_registration and not current_user.is_authenticated %}
-            <li><a id="login" href="{{url_for('web.login')}}"><span class="glyphicon glyphicon-log-in"></span> {{_('Login')}}</a></li>
-            <li><a id="register" href="{{url_for('web.register')}}"><span class="glyphicon glyphicon-user"></span> {{_('Register')}}</a></li>
+            {% if current_user.role_admin() and not current_user.is_anonymous and not simple %}
+              <a class="cw-nav-btn" id="top_tasks" href="{{url_for('tasks.get_tasks_status')}}" title="{{ _('Tasks') }}">{{ icon('list-checks') }}<span class="sr-only">{{ _('Tasks') }}</span></a>
             {% endif %}
-          </ul>
-        </div><!--/.nav-collapse -->
+            {% if current_user.role_admin() %}
+              <a class="cw-nav-btn" id="top_admin" href="{{url_for('admin.admin')}}" title="{{ _('Admin') }}">{{ icon('settings') }}<span class="sr-only">{{ _('Admin') }}</span></a>
+            {% endif %}
+            <a class="cw-nav-btn" id="top_user" href="{% if not current_user.is_anonymous %}{{url_for('web.profile')}}{% else %}{{url_for('web.login', next=(request.path + "?" + request.query_string.decode("utf-8")).rstrip("?"))}}{% endif %}" title="{{ current_user.name }}">{{ icon('user-round') }}<span class="sr-only">{{ current_user.name }}</span></a>
+            {% if not current_user.is_anonymous %}
+              <a class="cw-nav-btn" id="logout" href="{{url_for('web.logout', next=(request.path + "?" + request.query_string.decode("utf-8")).rstrip("?"))}}" title="{{ _('Logout') }}">{{ icon('log-out') }}<span class="sr-only">{{ _('Logout') }}</span></a>
+              <details class="cw-account">
+                <summary class="cw-nav-btn" aria-label="{{ current_user.name }}">{{ icon('user-round') }}</summary>
+                <div class="cw-account-menu">
+                  <a href="{{ url_for('web.profile') }}">{{ _('Settings') }}</a>
+                  {% if current_user.role_admin() %}
+                  <a href="{{ url_for('tasks.get_tasks_status') }}">{{ _('Tasks') }}</a>
+                  <a href="{{ url_for('admin.admin') }}">{{ _('Admin') }}</a>
+                  {% endif %}
+                  <a href="{{ url_for('web.logout', next=(request.path + '?' + request.query_string.decode('utf-8')).rstrip('?')) }}">{{ _('Logout') }}</a>
+                </div>
+              </details>
+            {% endif %}
+          {% endif %}
+          {% if g.allow_registration and not current_user.is_authenticated %}
+            <a class="cw-nav-btn" id="login" href="{{url_for('web.login')}}" title="{{ _('Login') }}">{{ icon('log-in') }}<span class="sr-only">{{ _('Login') }}</span></a>
+            <a class="cw-nav-btn" id="register" href="{{url_for('web.register')}}" title="{{ _('Register') }}">{{ icon('user-plus') }}<span class="sr-only">{{ _('Register') }}</span></a>
+          {% endif %}
+          {% if simple==true %}
+            <a class="cw-nav-btn" id="basic" href="{{url_for('basic.index')}}" title="{{ _('Simple Theme') }}">{{ icon('book') }}<span class="sr-only">{{ _('Simple Theme') }}</span></a>
+          {% endif %}
+        </div>
       </div>
     </div>
+    <div class="cw-toasts" aria-live="polite">
     {% for message in get_flashed_messages(with_categories=True) %}
-      {%if message[0] == "error" %}
-      <div class="row-fluid text-center" >
-        <div id="flash_danger" class="alert alert-danger">{{ message[1] }}</div>
-      </div>
-      {%endif%}
-      {%if message[0] == "info" %}
-      <div class="row-fluid text-center">
-        <div id="flash_info" class="alert alert-info">{{ message[1] }}</div>
-      </div>
-      {%endif%}
-      {%if message[0] == "warning" %}
-      <div class="row-fluid text-center">
-        <div id="flash_warning" class="alert alert-warning">{{ message[1] }}</div>
-      </div>
-      {%endif%}
-      {%if message[0] == "success" %}
-      <div class="row-fluid text-center">
-        <div id="flash_success" class="alert alert-success">{{ message[1] }}</div>
-      </div>
-      {%endif%}
+      {% if message[0] == "error" %}
+      <div class="cw-toast cw-toast-danger" role="status"><p>{{ message[1] }}</p><button type="button" class="cw-toast-close" aria-label="{{ _('Close') }}">{{ icon('x') }}</button></div>
+      {% elif message[0] == "info" %}
+      <div class="cw-toast cw-toast-info" role="status"><p>{{ message[1] }}</p><button type="button" class="cw-toast-close" aria-label="{{ _('Close') }}">{{ icon('x') }}</button></div>
+      {% elif message[0] == "warning" %}
+      <div class="cw-toast cw-toast-warning" role="status"><p>{{ message[1] }}</p><button type="button" class="cw-toast-close" aria-label="{{ _('Close') }}">{{ icon('x') }}</button></div>
+      {% elif message[0] == "success" %}
+      <div class="cw-toast cw-toast-success" role="status"><p>{{ message[1] }}</p><button type="button" class="cw-toast-close" aria-label="{{ _('Close') }}">{{ icon('x') }}</button></div>
+      {% endif %}
     {% endfor %}
+    </div>
     {% block flash %}{% endblock %}
-    <div class="container-fluid">
+    <div class="cw-backdrop" id="cw-backdrop" hidden></div>
+    <div class="container-fluid cw-shell">
       <div class="row-fluid">
         {% if current_user.is_authenticated or g.allow_anonymous %}
-        <div class="col-sm-2">
-          <nav class="navigation">
-            <ul class="list-unstyled" id="scnd-nav" intent in-standard-append="nav.navigation" in-mobile-after="#main-nav" in-mobile-class="nav navbar-nav">
-              <li class="nav-head hidden-xs">{{_('Browse')}}</li>
-              {% for element in sidebar %}
-                {% if current_user.check_visibility(element['visibility']) and element['public'] %}
-                    <li id="nav_{{element['id']}}" {% if page == element['page'] %}class="active"{% endif %}><a href="{% if element['no_param'] %}{{url_for(element['link'], data=element['page'])}}{%else%}{{url_for(element['link'], data=element['page'], sort_param='stored')}}{% endif %}"><span class="glyphicon {{element['glyph']}}"></span> {{_(element['text'])}}</a></li>
-                {% endif %}
-              {% endfor %}
-              {% if current_user.is_authenticated or g.allow_anonymous %}
-                <li class="nav-head hidden-xs public-shelves">{{_('Shelves')}}</li>
-                {% for shelf in g.shelves_access %}
-                  <li><a href="{{url_for('shelf.show_shelf', shelf_id=shelf.id)}}"><span class="glyphicon glyphicon-list shelf"></span> {{shelf.name|shortentitle(40)}}{% if shelf.is_public == 1 %} {{_('(Public)')}}{% endif %} <span class="badge badge-sm">{{shelf.books.all()|length}}</span></a></li>
-                {% endfor %}
-              {% if not current_user.is_anonymous %}
-                <li id="nav_createshelf" class="create-shelf"><a href="{{url_for('shelf.create_shelf')}}">{{_('Create a Shelf')}}</a></li>
-                <li id="nav_about" {% if page == 'stat' %}class="active"{% endif %}><a href="{{url_for('about.stats')}}"><span class="glyphicon glyphicon-info-sign"></span> {{_('About')}}</a></li>
+        <div class="col-sm-2 cw-sidebar" id="cw-sidebar" data-user="{{ current_user.id }}" data-summary="{{ url_for('library_ui.sidebar_summary') }}">
+          {% set shown = {} %}
+          {% for element in sidebar %}
+            {% if current_user.check_visibility(element['visibility']) and element['public'] %}
+              {% set _shown = shown.update({element['id']: true}) %}
+            {% endif %}
+          {% endfor %}
+          {% set current_shelf = shelf.id if shelf is defined and shelf.id is defined else 0 %}
+          <nav class="cw-side" aria-label="{{ _('Menu') }}">
+            <a class="cw-side-brand" href="{{ url_for('web.index') }}">
+              <span class="cw-wordmark"><span class="cw-wordmark-text">{{ instance }}</span></span>
+            </a>
+            <div class="cw-side-block">
+              {% if shown.get('new') %}
+              <a class="cw-side-link{% if page == 'libraryhome' %} is-active{% endif %}" href="{{ url_for('web.index') }}" title="{{ _('Home') }}">{{ icon('house') }}<span class="cw-side-text">{{ _('Home') }}</span></a>
               {% endif %}
+              {% if shown.get('cat') %}
+              <a class="cw-side-link{% if page in ['genres', 'genre', 'category', 'catlist'] %} is-active{% endif %}" href="{{ url_for('library_ui.genres_home') }}" title="{{ _('Genres') }}">{{ icon('tag') }}<span class="cw-side-text">{{ _('Genres') }}</span></a>
               {% endif %}
+              {% if shown.get('serie') %}
+              <a class="cw-side-link{% if page in ['serieshome', 'seriesbook', 'series', 'serieslist'] %} is-active{% endif %}" href="{{ url_for('web.series_list') }}" title="{{ _('Series') }}">{{ icon('layers') }}<span class="cw-side-text">{{ _('Series') }}</span></a>
+              {% endif %}
+              {% if shown.get('rand') %}
+              <a class="cw-side-link{% if page == 'discover' %} is-active{% endif %}" href="{{ url_for('web.books_list', data='discover', sort_param='stored') }}" title="{{ _('Discover') }}">{{ icon('shuffle') }}<span class="cw-side-text">{{ _('Discover') }}</span></a>
+              {% endif %}
+              <button type="button" class="cw-side-link" id="cw-side-search" title="{{ _('Search') }}">{{ icon('search') }}<span class="cw-side-text">{{ _('Search') }}</span></button>
+            </div>
 
-            </ul>
+            {% if shown.get('unread') or shown.get('read') or shown.get('rated') or current_user.is_authenticated %}
+            <div class="cw-side-block">
+              <div class="cw-side-kicker">{{ _('My Library') }}</div>
+              {% if shown.get('unread') %}
+              <a class="cw-side-link{% if page == 'unread' %} is-active{% endif %}" href="{{ url_for('web.books_list', data='unread', sort_param='stored') }}" title="{{ _('Want to Read') }}">{{ icon('bookmark') }}<span class="cw-side-text">{{ _('Want to Read') }}</span></a>
+              {% endif %}
+              {% if shown.get('read') %}
+              <a class="cw-side-link{% if page == 'read' %} is-active{% endif %}" href="{{ url_for('web.books_list', data='read', sort_param='stored') }}" title="{{ _('Finished') }}">{{ icon('circle-check') }}<span class="cw-side-text">{{ _('Finished') }}</span></a>
+              {% endif %}
+              {% if shown.get('rated') %}
+              <a class="cw-side-link{% if page == 'rated' %} is-active{% endif %}" href="{{ url_for('web.books_list', data='rated', sort_param='stored') }}" title="{{ _('Favorites') }}">{{ icon('heart') }}<span class="cw-side-text">{{ _('Favorites') }}</span></a>
+              {% endif %}
+              {% if current_user.is_authenticated %}
+              <a class="cw-side-link{% if page == 'friends' %} is-active{% endif %}" href="{{ url_for('library_ui.friends_page') }}" title="{{ _('Friends') }}">{{ icon('users') }}<span class="cw-side-text">{{ _('Friends') }}</span></a>
+              {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="cw-side-foot">
+              {% if not current_user.is_anonymous %}
+              <a class="{% if page == 'me' %}is-active{% endif %}" href="{{ url_for('web.profile') }}" title="{{ _('Settings') }}">{{ icon('user-round') }}<span>{{ _('Settings') }}</span></a>
+              <a class="{% if page == 'stat' %}is-active{% endif %}" href="{{ url_for('about.stats') }}" title="{{ _('About') }}">{{ icon('info') }}<span>{{ _('About') }}</span></a>
+              {% endif %}
+              <button type="button" class="cw-side-rail" id="cw-side-rail" title="{{ _('Collapse sidebar') }}">{{ icon('chevron-left') }}<span>{{ _('Collapse sidebar') }}</span></button>
+            </div>
           </nav>
         </div>
         {% endif %}
-        <div class="col-sm-10">
+        <div class="col-sm-10 cw-main">
           {% block body %}{% endblock %}
           {% if pagination and (pagination.has_next or pagination.has_prev) %}
             <div class="pagination">
@@ -201,7 +231,7 @@
     <script src="{{ url_for('static', filename='js/libs/jquery.form.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/uploadprogress.js') }}"> </script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/library_ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/library_ui.js') }}?v=11"></script>
     {% block js %}{% endblock %}
   </body>
 </html>

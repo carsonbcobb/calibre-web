@@ -1,0 +1,63 @@
+{% extends theme("layout.html") %}
+{% from 'library_discover_panel.html' import panel as discover_panel %}
+{% from 'library_genre_bar.html' import genre_bar %}
+{% block body %}
+<div class="library-home cw-discover-page" id="cw-discover-page"
+     data-url="{{ url_for('library_ui.discover_shelf') }}"
+     data-seed="{{ discover_seed }}"
+     data-exclude="{{ discover_exclude|join(',') }}"
+     data-debug="{{ '1' if discover_debug else '' }}"
+     data-ready="1"
+     data-shown="{{ discover_shown }}"
+     data-total="{{ discover_total }}"
+     data-grid-offset="{{ discover_grid_offset }}"
+     data-grid-count="{{ discover_grid_count }}"
+     data-count="{{ _('Showing {shown} of {total} titles and series') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {{ discover_panel(discover_cards) }}
+  {{ genre_bar(featured_genres, 'discover', '', extra_genres) }}
+  <p class="cw-discover-count" id="cw-discover-count" aria-live="polite">{{ _('Showing %(shown)s of %(total)s titles and series', shown=discover_shown, total=discover_total) }}</p>
+  <div id="cw-discover-rows">
+    {% for row in discover_rows %}
+    {{ row.html|safe }}
+    {% endfor %}
+    {% for row in discover_later %}
+    <section class="cw-discover-slot" data-discover-row data-kind="{{ row.key }}" data-state="wait" hidden></section>
+    {% endfor %}
+  </div>
+  {% if discover_grid %}
+  <section class="library-row-wrap" id="cw-discover-keep">
+    <div class="library-row-head">
+      <h2>{{ _('Keep exploring') }}</h2>
+    </div>
+    <div class="cw-book-grid" id="cw-discover-more">
+      {% import 'library_card.html' as cards %}
+      {% for book in discover_grid %}
+      {{ cards.book_card(book) }}
+      {% endfor %}
+    </div>
+    <div id="cw-discover-sentinel"></div>
+  </section>
+  {% else %}
+  <section class="library-row-wrap" id="cw-discover-keep" hidden>
+    <div class="library-row-head">
+      <h2>{{ _('Keep exploring') }}</h2>
+    </div>
+    <div class="cw-book-grid" id="cw-discover-more"></div>
+    <div id="cw-discover-sentinel"></div>
+  </section>
+  {% endif %}
+  <div class="cw-discover-end" id="cw-discover-end" hidden>
+    <p>{{ _('You have seen every title and series. Roll again?') }}</p>
+    <button type="button" class="cw-genre-chip" id="cw-discover-roll">{{ _('Roll again') }}</button>
+  </div>
+  {% if discover_debug %}
+  <div id="cw-discover-debug"></div>
+  {% if genre_debug %}
+  {% with blocks=genre_debug, summary=_('Genre rows') %}
+  {% include 'library_discover_debug.html' %}
+  {% endwith %}
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

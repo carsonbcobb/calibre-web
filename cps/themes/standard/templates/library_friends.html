@@ -1,0 +1,72 @@
+{% extends theme("layout.html") %}
+{% from 'cw_icons.html' import icon %}
+{% block body %}
+<div class="library-home cw-friends">
+  <section class="library-row-wrap">
+    <div class="library-row-head">
+      <div>
+        <h2>{{ _('Friends') }}</h2>
+        <p class="cw-friends-sub">{{ _('People you can send books to.') }}</p>
+      </div>
+      <button type="button" class="cw-add-friend" id="cw-add-friend">{{ icon('user-plus') }}<span>{{ _('Add friend') }}</span></button>
+    </div>
+
+    {% if people %}
+    <div class="cw-friend-cards">
+      {% for item in people %}
+      {% set friend = item.friend %}
+      <article class="cw-friend-card" data-id="{{ friend.id }}" data-name="{{ friend.name }}" data-email="{{ friend.kindle_email }}">
+        <div class="cw-friend-main">
+          <span class="cw-avatar" aria-hidden="true">{{ item.initials }}</span>
+          <div class="cw-friend-id">
+            <h3>{{ friend.name }}</h3>
+            <p>{{ friend.kindle_email }}</p>
+          </div>
+          <div class="cw-friend-tools">
+            <button type="button" class="cw-icon-btn" data-edit="{{ friend.id }}" aria-label="{{ _('Edit') }}">{{ icon('pencil') }}</button>
+            <button type="button" class="cw-icon-btn" data-delete="{{ friend.id }}" aria-label="{{ _('Remove') }}">{{ icon('trash') }}</button>
+          </div>
+        </div>
+        {% if item.recent %}
+        <div class="cw-friend-recent">
+          <p>{{ _('Recently sent') }}</p>
+          <ul>
+            {% for sent in item.recent %}
+            <li><a href="{{ url_for('web.show_book', book_id=sent.book_id) }}">{{ sent.title }}</a> <span>{{ sent.when }}</span></li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="cw-friends-empty">
+      <span class="cw-friends-empty-icon">{{ icon('users') }}</span>
+      <p>{{ _('Add a friend to send them books.') }}</p>
+      <button type="button" class="cw-add-friend" data-add="empty">{{ icon('user-plus') }}<span>{{ _('Add friend') }}</span></button>
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+<div class="cw-modal-back" id="cw-friend-modal" hidden>
+  <div class="cw-modal" role="dialog" aria-modal="true" aria-labelledby="cw-friend-modal-title">
+    <h2 id="cw-friend-modal-title">{{ _('Add friend') }}</h2>
+    <form id="cw-friend-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="id" value="">
+      <label for="cw-friend-name">{{ _('Name') }}</label>
+      <input id="cw-friend-name" class="form-control" name="name" type="text" maxlength="80" required>
+      <label for="cw-friend-email">{{ _('Kindle email') }}</label>
+      <input id="cw-friend-email" class="form-control" name="kindle_email" type="email" maxlength="120" required>
+      <p class="cw-friend-help">{{ helper }}</p>
+      <p class="cw-friend-error" hidden></p>
+      <div class="cw-modal-actions">
+        <button type="button" class="cw-modal-cancel" data-close="form">{{ _('Cancel') }}</button>
+        <button type="submit" class="cw-friend-submit">{{ _('Save') }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
