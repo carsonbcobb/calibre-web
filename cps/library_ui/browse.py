@@ -326,7 +326,7 @@ def _series_cards(catalog, stats):
             shown,
             _("Series"),
             first.get("series_name") or first["title"],
-            "",
+            first.get("blurb_text") or "",
             meta=_series_meta(len(members), minutes),
             action_url="/series/%s" % series_id,
             action_label=_("Continue Series") if started else _("Start Series"),
@@ -481,7 +481,7 @@ def _book_hero(book, kicker, title, blurb, meta="", send_book=None, send_label="
         more_label = _("More info")
         more_primary = False
     copy = None
-    if (plain_series or book.get("kind") == "series") and book.get("series_id"):
+    if large and (plain_series or book.get("kind") == "series") and book.get("series_id"):
         from .series_info import present
 
         count = book.get("count") or book.get("series_len") or 0

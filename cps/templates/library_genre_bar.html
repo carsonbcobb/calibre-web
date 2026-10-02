@@ -56,9 +56,6 @@
     {% if row.subtitle %}
     <p class="library-row-sub">{{ row.subtitle }}</p>
     {% endif %}
-    {% if row.count %}
-    <p class="cw-row-count">{{ _('%(count)s books', count=row.count) }}</p>
-    {% endif %}
   </div>
   {% if row.href %}
   <a class="library-see-all" href="{{ row.href }}">{{ _('See all') }}</a>

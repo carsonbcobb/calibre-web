@@ -88,9 +88,6 @@ def _unit_card(unit):
 
     from flask import url_for
 
-    from .series_info import present
-    from .units import sentence_case
-
     book = calibre_db.session.query(db.Books).filter(db.Books.id == int(unit["cover_id"])).first()
     card = _discover_card(book) if book is not None else {}
     if unit.get("kind") != "series":
@@ -104,11 +101,6 @@ def _unit_card(unit):
     card["rating"] = unit.get("rating") or ""
     card["rating_count"] = unit.get("rating_count") or ""
     card["rating_source"] = unit.get("rating_source") or ""
-    copy = present(unit.get("series_id"), unit.get("author_name") or "", unit.get("count") or 0, unit.get("minutes"))
-    card["blurb"] = copy["excerpt"]
-    card["blurb_rest"] = copy["rest"]
-    card["source_name"] = copy["source_name"]
-    card["source_url"] = copy["source_url"]
     card["url"] = unit.get("href") or card.get("url") or ""
     card["send"] = ""
     card["send_note"] = ""
@@ -134,7 +126,6 @@ def _row_book_ids(row):
 
 def _face_heroes(heroes):
     """When a featured book belongs to a series, the hero speaks for the series."""
-    from .series_info import present
     from .units import sentence_case, series_by_member
 
     index = series_by_member()
@@ -146,11 +137,10 @@ def _face_heroes(heroes):
         if unit:
             slide["headline"] = unit.get("title") or slide.get("headline") or ""
             slide["title"] = unit.get("title") or slide.get("title") or ""
-            copy = present(unit.get("series_id"), unit.get("author_name") or "", unit.get("count") or 0, unit.get("minutes"))
-            slide["blurb"] = copy["excerpt"]
-            slide["blurb_rest"] = copy["rest"]
-            slide["source_name"] = copy["source_name"]
-            slide["source_url"] = copy["source_url"]
+            slide["blurb"] = unit.get("lead_blurb") or slide.get("blurb") or ""
+            slide["blurb_rest"] = ""
+            slide["source_name"] = ""
+            slide["source_url"] = ""
             slide["pages"] = unit.get("count_label") or ""
             slide["read_time"] = unit.get("hours_label") or ""
             slide["send_note"] = ""

@@ -40,11 +40,6 @@
       <span class="cw-unit-progress"{% if not book.library_progress %} hidden{% endif %}><span style="width: {{ book.library_progress }}%"></span></span>
     </span>
   </a>
-  {% if book.library_send_url %}
-  <div class="cw-card-actions">
-    <button type="button" class="btn library-send-kindle" data-href="{{ book.library_send_url }}" data-toast="{{ _('Sent %(title)s', title=book.library_send_title) }}">{{ icon('send') }}<span>{{ _('Send to Kindle') }}</span></button>
-  </div>
-  {% endif %}
 </div>
 {%- endmacro %}
 
@@ -72,9 +67,6 @@
       <span class="cw-unit-progress" hidden><span></span></span>
     </span>
   </a>
-  <div class="cw-card-actions">
-    {% include 'library_send.html' %}
-  </div>
 </div>
 {% endif %}
 {%- endmacro %}

@@ -20,10 +20,112 @@
     if (!scroller || !prev || !next) {
       return;
     }
+    if (scroller.dataset.loop === "1") {
+      prev.hidden = false;
+      next.hidden = false;
+      return;
+    }
     var max = scroller.scrollWidth - scroller.clientWidth;
     var canScroll = max > 8;
     prev.hidden = !canScroll || scroller.scrollLeft <= 8;
     next.hidden = !canScroll || scroller.scrollLeft >= max - 8;
+  }
+
+  function rowCards(scroller, realOnly) {
+    return Array.prototype.filter.call(scroller.children, function (node) {
+      return node.nodeType === 1 && (!realOnly || !node.classList.contains("is-clone"));
+    });
+  }
+
+  function loopSetWidth(scroller) {
+    var cards = rowCards(scroller, true);
+    if (cards.length < 2) {
+      return 0;
+    }
+    var gap = parseFloat(window.getComputedStyle(scroller).columnGap || window.getComputedStyle(scroller).gap) || 0;
+    var width = gap * cards.length;
+    cards.forEach(function (card) {
+      width += card.offsetWidth;
+    });
+    return width;
+  }
+
+  function cloneCard(card) {
+    var copy = card.cloneNode(true);
+    copy.classList.add("is-clone");
+    copy.setAttribute("aria-hidden", "true");
+    copy.querySelectorAll("a, button, input").forEach(function (el) {
+      el.tabIndex = -1;
+    });
+    return copy;
+  }
+
+  function measuredSet(scroller) {
+    var real = rowCards(scroller, true);
+    var lead = scroller.querySelector(":scope > .is-clone");
+    if (real.length && lead) {
+      var set = real[0].offsetLeft - lead.offsetLeft;
+      if (set > 0) {
+        return set;
+      }
+    }
+    return loopSetWidth(scroller);
+  }
+
+  function setupLoop(scroller) {
+    if (scroller.dataset.loop === "1") {
+      var next = measuredSet(scroller);
+      if (next) {
+        scroller.dataset.loopWidth = String(next);
+      }
+      return;
+    }
+    var cards = rowCards(scroller, false);
+    if (cards.length < 2 || scroller.scrollWidth <= scroller.clientWidth + 8) {
+      return;
+    }
+    cards.forEach(function (card) {
+      card.style.contentVisibility = "visible";
+    });
+    var set = loopSetWidth(scroller);
+    if (!set) {
+      return;
+    }
+    var originals = cards.slice();
+    var before = document.createDocumentFragment();
+    originals.forEach(function (card) {
+      before.appendChild(cloneCard(card));
+      scroller.appendChild(cloneCard(card));
+    });
+    scroller.insertBefore(before, scroller.firstChild);
+    set = measuredSet(scroller) || set;
+    scroller.classList.add("is-loop");
+    scroller.dataset.loop = "1";
+    scroller.dataset.loopWidth = String(set);
+    scroller.scrollLeft = set;
+  }
+
+  function wrapLoop(scroller) {
+    if (scroller.dataset.loop !== "1" || scroller.dataset.wrapping === "1") {
+      return;
+    }
+    var set = parseFloat(scroller.dataset.loopWidth || "0");
+    if (!set) {
+      return;
+    }
+    var left = scroller.scrollLeft;
+    var next = left;
+    if (left < 1) {
+      next = left + set;
+    } else if (left >= set * 2) {
+      next = left - set;
+    }
+    if (next === left) {
+      return;
+    }
+    scroller.dataset.wrapping = "1";
+    scroller.scrollLeft = next;
+    scroller.dataset.wrapping = "0";
   }
 
   function measureRows() {
@@ -36,6 +138,7 @@
     }
     scroller.dataset.bound = "1";
     scroller.addEventListener("scroll", function () {
+      wrapLoop(scroller);
       var stage = scroller.closest(".cw-row-stage");
       if (stage) {
         updateRowArrows(stage);
@@ -44,7 +147,10 @@
   }
 
   function bindRows() {
-    document.querySelectorAll(".library-row-scroller").forEach(bindScroller);
+    document.querySelectorAll(".library-row-scroller").forEach(function (scroller) {
+      setupLoop(scroller);
+      bindScroller(scroller);
+    });
     measureRows();
   }
 

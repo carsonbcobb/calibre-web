@@ -32,7 +32,7 @@
     {% if library_custom_css %}
     <style id="library-custom-css">{{ library_custom_css|safe }}</style>
     {% endif %}
-    <link href="{{ url_for('static', filename='css/custom_theme.css') }}?v=16" rel="stylesheet" media="screen">
+    <link href="{{ url_for('static', filename='css/custom_theme.css') }}?v=18" rel="stylesheet" media="screen">
   </head>
   <body class="{{ page }} {{ bodyClass }}">
     <div class="navbar navbar-default navbar-static-top library-topnav" role="navigation">
@@ -231,7 +231,7 @@
     <script src="{{ url_for('static', filename='js/libs/jquery.form.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/uploadprogress.js') }}"> </script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/library_ui.js') }}?v=11"></script>
+    <script src="{{ url_for('static', filename='js/library_ui.js') }}?v=13"></script>
     {% block js %}{% endblock %}
   </body>
 </html>
