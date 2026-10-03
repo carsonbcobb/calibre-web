@@ -1,0 +1,21 @@
+{% extends theme("layout.html") %}
+{% block body %}
+<div class="library-home cw-coverage">
+  <h1>{{ _('Series descriptions') }}</h1>
+  <p class="cw-row-sub">{{ _('A saved description stays on the series page. Leave it blank to let a scan fill it.') }}</p>
+  {% for item in series %}
+  <form class="cw-series-edit" method="post" action="{{ url_for('library_ui.save_series_description', series_id=item.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="next" value="{{ url_for('library_ui.series_descriptions') }}">
+    <strong>{{ item.name }}</strong>
+    <label for="series-description-{{ item.id }}">{{ _('Series description') }}</label>
+    <textarea class="form-control" id="series-description-{{ item.id }}" name="description" rows="3">{{ item.description }}</textarea>
+    <label for="series-source-{{ item.id }}">{{ _('Source link') }}</label>
+    <input class="form-control" id="series-source-{{ item.id }}" name="source_url" value="{{ item.source_url }}">
+    <button class="btn btn-default" type="submit">{{ _('Save description') }}</button>
+  </form>
+  {% else %}
+  <p>{{ _('No series yet.') }}</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -347,6 +347,22 @@ def award_win_ids():
     return {row[0] for row in rows}
 
 
+def nyt_ids():
+    """Books stored as a New York Times bestseller."""
+    from .. import ub
+    from .models import BookAccolade
+
+    try:
+        rows = (ub.session.query(BookAccolade.book_id)
+                .filter(BookAccolade.type == "bestseller")
+                .filter(BookAccolade.label.ilike("%nyt%") | BookAccolade.label.ilike("%new york times%"))
+                .all())
+    except Exception:
+        ub.session.rollback()
+        return set()
+    return {row[0] for row in rows}
+
+
 def has_award(book, wins):
     if not wins:
         return False

@@ -181,6 +181,10 @@ def genres_home():
 def genre_page(name):
     if not current_user.check_visibility(constants.SIDEBAR_CATEGORY):
         abort(404)
+    from .shelf_config import tag_hidden
+    folded = (name or "").replace("-", " ").replace("_", " ").strip()
+    if tag_hidden(folded):
+        return redirect(url_for("library_ui.genres_home"))
     from .browse import render_genre_page
     return render_genre_page(name)
 
@@ -407,7 +411,24 @@ def save_series_description(series_id):
 
     save_manual(series_id, request.form.get("description"), request.form.get("source_url"))
     flash(_("Series description saved."), category="success")
+    nxt = (request.form.get("next") or "").strip()
+    if nxt.startswith("/admin/") and not nxt.startswith("//"):
+        return redirect(nxt)
     return redirect("/series/%s" % int(series_id))
+
+
+@library_ui_bp.route("/admin/library/series")
+@user_login_required
+@admin_required
+def series_descriptions():
+    from .series_info import editor_rows
+
+    return render_title_template(
+        "library_series_admin.html",
+        title=_("Series descriptions"),
+        page="adminseries",
+        series=editor_rows(),
+    )
 
 
 @library_ui_bp.route("/admin/library/scan", methods=["GET", "POST"])
@@ -422,6 +443,10 @@ def scan_reading():
         elif action == "ratings":
             enqueue_ratings(getattr(current_user, "name", None) or "admin", missing_only=True)
             flash(_("Rating rescan started. It runs in the background and only retries books with no rating."), category="success")
+        elif action == "moods":
+            from .ratings.hardcover import enqueue_moods
+            enqueue_moods(getattr(current_user, "name", None) or "admin")
+            flash(_("Mood rescan started. It retries books with no Hardcover moods and does not guess."), category="success")
         elif action == "save_rating":
             if save_manual_rating(request.form.get("book_id"), request.form.get("rating")):
                 flash(_("Rating saved."), category="success")
@@ -590,3 +615,72 @@ def moderate_comments():
         comments=recent_comments(),
         comment_author=user_name,
     )
+
+
+@library_ui_bp.route("/request")
+@user_login_required
+def request_book():
+    from .requests import user_rows
+
+    return render_title_template(
+        "library_request.html",
+        title=_("Request a Book"),
+        page="request",
+        requests=user_rows(current_user.id),
+    )
+
+
+@library_ui_bp.route("/request", methods=["POST"])
+@user_login_required
+def request_book_save():
+    from .requests import create_request
+
+    payload = create_request(
+        current_user.id,
+        request.form.get("title"),
+        request.form.get("author"),
+        confirmed=request.form.get("confirm") == "1",
+    )
+    status = 200 if payload.get("ok") else 400
+    if payload.get("code") == "duplicate":
+        status = 409
+    elif payload.get("code") == "limit":
+        status = 429
+    return jsonify(payload), status
+
+
+@library_ui_bp.route("/request/<int:request_id>/delete", methods=["POST"])
+@user_login_required
+def request_book_delete(request_id):
+    from .requests import delete_own
+
+    if not delete_own(current_user.id, request_id):
+        abort(403)
+    return jsonify({"ok": True})
+
+
+@library_ui_bp.route("/admin/requests")
+@user_login_required
+@admin_required
+def admin_requests():
+    from .requests import admin_rows
+
+    return render_title_template(
+        "library_requests_admin.html",
+        title=_("Book Requests"),
+        page="adminrequests",
+        request_rows=admin_rows(),
+    )
+
+
+@library_ui_bp.route("/admin/requests/update", methods=["POST"])
+@user_login_required
+@admin_required
+def admin_requests_update():
+    from .requests import apply_admin
+
+    action = (request.form.get("action") or "").strip()
+    changed = apply_admin(action, request.form.getlist("ids"))
+    if action not in ("fulfilled", "declined", "delete"):
+        abort(400)
+    return jsonify({"ok": True, "ids": changed, "action": action})

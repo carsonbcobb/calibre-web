@@ -2,8 +2,11 @@
 {% if lanes %}
 <section class="library-row-wrap cw-lanes-wrap" aria-labelledby="shelf-{{ row_id }}">
   <div class="library-row-head">
-    <h2 id="shelf-{{ row_id }}">{{ title }}</h2>
-    {% if subtitle %}<p class="cw-row-sub">{{ subtitle }}</p>{% endif %}
+    <div>
+      {% if label %}<p class="cw-row-label">{{ label }}</p>{% endif %}
+      <h2 id="shelf-{{ row_id }}">{{ title }}</h2>
+      {% if subtitle %}<p class="library-row-sub">{{ subtitle }}</p>{% endif %}
+    </div>
   </div>
   <div class="cw-lanes">
     {% for lane in lanes %}
@@ -21,8 +24,11 @@
 {% elif books %}
 <section class="library-row-wrap{% if cover_only %} cw-cover-row{% endif %}" aria-labelledby="shelf-{{ row_id }}">
   <div class="library-row-head">
-    <h2 id="shelf-{{ row_id }}">{{ title }}</h2>
-    {% if subtitle %}<p class="cw-row-sub">{{ subtitle }}</p>{% endif %}
+    <div>
+      {% if label %}<p class="cw-row-label">{{ label }}</p>{% endif %}
+      <h2 id="shelf-{{ row_id }}">{{ title }}</h2>
+      {% if subtitle %}<p class="library-row-sub">{{ subtitle }}</p>{% endif %}
+    </div>
   </div>
   {{ cards.scroller(row_id, books) }}
 </section>

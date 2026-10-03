@@ -465,3 +465,85 @@ def _author(book):
     if not authors:
         return ""
     return (authors[0].name or "").replace("|", " ")
+
+
+def enqueue_moods(user_name):
+    """Retry Hardcover for books that still have no moods. Does not invent one."""
+    from flask import current_app
+    from ...services.worker import WorkerThread
+
+    application = current_app._get_current_object()
+    WorkerThread.add(user_name or "admin", _mood_task(application), hidden=False)
+
+
+def _mood_task(application):
+    from ...services.worker import STAT_CANCELLED, STAT_ENDED, CalibreTask
+
+    class _Task(CalibreTask):
+        def __init__(self, app_obj):
+            super(_Task, self).__init__("Fill moods")
+            self.application = app_obj
+
+        def run(self, worker_thread):
+            with self.application.app_context():
+                total, filled = _fill_moods(self)
+            self.progress = 1
+            self.message = "Moods filled for %s of %s books. The rest are still missing." % (filled, total)
+            if self.stat not in (STAT_CANCELLED, STAT_ENDED):
+                self._handleSuccess()
+
+        @property
+        def name(self):
+            return "Fill moods"
+
+        @property
+        def is_cancellable(self):
+            return True
+
+    return _Task(application)
+
+
+def _fill_moods(task):
+    import json
+
+    from ... import calibre_db, db, ub
+    from ..evidence import clear_evidence_cache
+    from ..models import HardcoverBook
+
+    provider = HardcoverProvider()
+    if not provider.available():
+        return 0, 0
+    have = {}
+    for row in ub.session.query(HardcoverBook).all():
+        have[int(row.book_id)] = row
+    books = calibre_db.session.query(db.Books).filter(calibre_db.common_filters()).all()
+    missing = []
+    for book in books:
+        row = have.get(int(book.id))
+        moods = []
+        if row is not None and not row.error:
+            try:
+                moods = json.loads(row.moods or "[]")
+            except ValueError:
+                moods = []
+        if not moods:
+            missing.append(book)
+    filled = 0
+    for index, book in enumerate(missing):
+        if getattr(task, "stat", None) == "cancelled":
+            break
+        found = provider.lookup(book)
+        row = have.get(int(book.id)) or ub.session.query(HardcoverBook).filter(HardcoverBook.book_id == int(book.id)).one_or_none()
+        if row is not None and not row.error:
+            try:
+                moods = json.loads(row.moods or "[]")
+            except ValueError:
+                moods = []
+            if moods:
+                filled += 1
+        if missing:
+            task.progress = float(index + 1) / float(len(missing))
+        if found is None:
+            continue
+    clear_evidence_cache()
+    return len(missing), filled

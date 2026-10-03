@@ -188,7 +188,7 @@
                 {% endfor %}
               {% endif %}
               {% if entry.tags|length > 0 %}
-                {% for tag in entry.tags %}
+                {% for tag in entry.tags if not library_tag_hidden(tag.name) %}
                   <a href="{{ url_for('web.books_list', data='category', sort_param='stored', book_id=tag.id) }}" class="btn btn-xs">{{ tag.name }}</a>
                 {% endfor %}
               {% endif %}

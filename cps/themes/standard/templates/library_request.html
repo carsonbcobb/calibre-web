@@ -1,0 +1,60 @@
+{% extends theme("layout.html") %}
+{% from 'cw_icons.html' import icon %}
+{% block body %}
+<div class="library-home cw-request" id="cw-request"
+  data-save="{{ url_for('library_ui.request_book_save') }}"
+  data-fulfilled="{{ requests|selectattr('status', 'equalto', 'fulfilled')|map(attribute='id')|join(',') }}"
+  data-sent="{{ _('Request sent') }}"
+  data-yours="{{ _('Your requests') }}"
+  data-pending-label="{{ _('Pending') }}"
+  data-remove-label="{{ _('Remove') }}"
+  data-need-title="{{ _('Enter a title') }}"
+  data-need-author="{{ _('Enter an author') }}"
+  data-fail="{{ _('Could not save that request') }}"
+  data-fulfilled-note="{{ _('A request was fulfilled') }}">
+  <section class="cw-request-card">
+    <h2>{{ _('Request a Book') }}</h2>
+    <p class="cw-request-sub">{{ _("Can't find something? Tell us what to add.") }}</p>
+    <form id="cw-request-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="confirm" value="">
+      <label for="cw-request-title">{{ _('Title') }}</label>
+      <input id="cw-request-title" class="form-control" name="title" type="text" maxlength="200" autocomplete="off">
+      <p class="cw-request-error" data-for="title" hidden></p>
+      <label for="cw-request-author">{{ _('Author') }}</label>
+      <input id="cw-request-author" class="form-control" name="author" type="text" maxlength="200" autocomplete="off">
+      <p class="cw-request-error" data-for="author" hidden></p>
+      <p class="cw-request-match" id="cw-request-match" hidden>
+        <span>{{ _('This may already be in the library') }}</span>
+        <a href="" id="cw-request-match-link"></a>
+      </p>
+      <p class="cw-request-error" data-for="form" hidden></p>
+      <button type="submit" class="cw-request-submit" data-label="{{ _('Request') }}" data-busy="{{ _('Sending') }}">{{ _('Request') }}</button>
+    </form>
+  </section>
+  {% if requests %}
+  <section class="cw-request-list" id="cw-request-list">
+    <h3>{{ _('Your requests') }}</h3>
+    <ul>
+      {% for item in requests %}
+      <li data-id="{{ item.id }}" data-status="{{ item.status }}">
+        <div>
+          <strong>{{ item.title }}</strong>
+          <span>{{ item.author }}</span>
+          <time datetime="{{ item.created }}">{{ item.date }}</time>
+        </div>
+        <div class="cw-request-side">
+          <span class="cw-request-chip is-{{ item.status }}">
+            {% if item.status == 'fulfilled' %}{{ _('Fulfilled') }}{% elif item.status == 'declined' %}{{ _('Declined') }}{% else %}{{ _('Pending') }}{% endif %}
+          </span>
+          {% if item.pending %}
+          <button type="button" class="cw-request-remove" data-url="{{ url_for('library_ui.request_book_delete', request_id=item.id) }}">{{ _('Remove') }}</button>
+          {% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

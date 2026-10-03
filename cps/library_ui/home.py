@@ -93,7 +93,6 @@ def _unit_card(unit):
     if unit.get("kind") != "series":
         return card
     card["id"] = unit["id"]
-    card["title"] = unit.get("title") or card.get("title") or ""
     card["author"] = unit.get("author_name") or card.get("author") or ""
     card["series"] = unit.get("count_label") or ""
     card["pages"] = unit.get("count_label") or ""
@@ -260,22 +259,6 @@ def recent_books(limit=24):
         return []
 
 
-# Broad tags that should not get their own row. A book can appear in
-# every real genre it is tagged with, so each shelf stays full.
-_GENERIC_TAGS = {
-    "fiction",
-    "general",
-    "general fiction",
-    "literature",
-    "novel",
-    "novels",
-    "books",
-    "ebook",
-    "ebooks",
-    "kindle",
-}
-
-
 def heroes_or_fallback():
     slides = hero_slides()
     if slides:
@@ -294,102 +277,6 @@ def heroes_or_fallback():
         "blurb": _comment_excerpt(book),
         "href_kind": "book",
     }]
-
-
-def _tag_name(tag):
-    return (tag.name or "").strip().casefold()
-
-
-# Shelf headings. The books still come from the real tag.
-_ROW_TITLES = {
-    "fantasy": "Worlds with magic in them",
-    "science fiction": "Worlds beyond this one",
-    "action & adventure": "Stories that keep moving",
-    "action and adventure": "Stories that keep moving",
-    "epic": "Big worlds, long roads",
-    "classics": "The ones people keep",
-    "thrillers": "Hard to put down",
-    "thriller": "Hard to put down",
-    "space opera": "Empires among the stars",
-    "historical": "Lives in another century",
-    "litrpg": "Levels, loot, and last stands",
-    "litrpg (literary role-playing game)": "Levels, loot, and last stands",
-    "dark fantasy": "Magic with the lights off",
-    "hard science fiction": "Where the science holds",
-    "horror": "For a darker night",
-    "romance": "Love in the story",
-    "humorous": "Something lighter",
-    "humour": "Something lighter",
-    "humor": "Something lighter",
-    "adventure": "The journey is the point",
-    "alien contact": "First meetings",
-    "dystopian": "When the future fails",
-    "fairy tales; folk tales; legends & mythology": "Old stories, still sharp",
-    "suspense": "Something is about to happen",
-    "crime": "The case is open",
-    "mystery": "Questions first",
-    "literary": "Sentences worth slowing down for",
-}
-
-
-def _row_title(tag):
-    name = _tag_name(tag)
-    if name in _ROW_TITLES:
-        return _ROW_TITLES[name]
-    cleaned = (tag.name or "").strip()
-    if "(" in cleaned:
-        cleaned = cleaned.split("(", 1)[0].strip()
-    if ";" in cleaned:
-        cleaned = cleaned.split(";", 1)[0].strip()
-    return cleaned or (tag.name or "").strip()
-
-
-def genre_rows(row_count=8, per_row=24, minimum=2):
-    try:
-        from .. import calibre_db, db
-        counts = (calibre_db.session.query(db.Tags, func.count(db.Books.id))
-                  .join(db.books_tags_link, db.Tags.id == db.books_tags_link.c.tag)
-                  .join(db.Books, db.Books.id == db.books_tags_link.c.book)
-                  .filter(calibre_db.common_filters())
-                  .group_by(db.Tags.id)
-                  .order_by(func.count(db.Books.id).desc(), db.Tags.name.asc())
-                  .all())
-        ranked = []
-        for tag, count in counts:
-            if _tag_name(tag) in _GENERIC_TAGS or int(count) < minimum:
-                continue
-            ranked.append((tag, int(count)))
-            if len(ranked) >= row_count:
-                break
-        if not ranked:
-            return []
-        wanted = {tag.id for tag, _count in ranked}
-        books = (calibre_db.session.query(db.Books)
-                 .filter(db.Books.tags.any(db.Tags.id.in_(list(wanted))))
-                 .filter(calibre_db.common_filters())
-                 .order_by(db.Books.timestamp.desc())
-                 .all())
-        buckets = {tag_id: [] for tag_id in wanted}
-        for book in books:
-            for tag in book.tags:
-                bucket = buckets.get(tag.id)
-                if bucket is not None and len(bucket) < per_row:
-                    bucket.append(book)
-        rows = []
-        for tag, count in ranked:
-            chosen = buckets[tag.id]
-            if len(chosen) < minimum:
-                continue
-            rows.append({
-                "tag": tag,
-                "count": count,
-                "books": chosen,
-                "title": _row_title(tag),
-            })
-        return rows
-    except Exception as error:
-        log.debug("Genre rows unavailable: %s", error)
-        return []
 
 
 def collection_cards():

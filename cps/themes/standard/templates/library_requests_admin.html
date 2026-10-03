@@ -1,0 +1,58 @@
+{% extends theme("layout.html") %}
+{% from 'cw_icons.html' import icon %}
+{% block body %}
+<div class="library-home cw-req-admin" id="cw-req-admin"
+  data-update="{{ url_for('library_ui.admin_requests_update') }}"
+  data-mark="{{ _('Mark fulfilled') }}"
+  data-decline="{{ _('Decline') }}"
+  data-delete="{{ _('Delete') }}"
+  data-hardcover="{{ _('Search Hardcover') }}"
+  data-google="{{ _('Search Google') }}"
+  data-pending-label="{{ _('Pending') }}"
+  data-fulfilled-label="{{ _('Fulfilled') }}"
+  data-declined-label="{{ _('Declined') }}"
+  data-updated="{{ _('Requests updated') }}"
+  data-removed="{{ _('Requests removed') }}"
+  data-done="{{ _('Request fulfilled') }}"
+  data-no="{{ _('Request declined') }}"
+  data-gone="{{ _('Request deleted') }}"
+  data-fail="{{ _('Could not save that request') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="cw-req-admin-head">
+    <h2>{{ _('Book Requests') }}</h2>
+    <button type="button" class="cw-req-export" id="cw-req-export">{{ _('Export CSV') }}</button>
+  </div>
+  <div class="cw-req-tools">
+    <label class="sr-only" for="cw-req-find">{{ _('Search') }}</label>
+    <input id="cw-req-find" class="form-control" type="search" placeholder="{{ _('Search title, author, or user') }}" autocomplete="off">
+    <div class="cw-req-filters" role="tablist">
+      <button type="button" data-status="all">{{ _('All') }}</button>
+      <button type="button" class="is-on" data-status="pending">{{ _('Pending') }}</button>
+      <button type="button" data-status="fulfilled">{{ _('Fulfilled') }}</button>
+      <button type="button" data-status="declined">{{ _('Declined') }}</button>
+    </div>
+  </div>
+  <div class="cw-req-bulk" id="cw-req-bulk" hidden>
+    <button type="button" data-action="fulfilled">{{ _('Mark fulfilled') }}</button>
+    <button type="button" data-action="declined">{{ _('Decline') }}</button>
+    <button type="button" data-action="delete">{{ _('Delete') }}</button>
+  </div>
+  <div class="cw-req-table-wrap">
+    <table class="cw-req-table">
+      <thead>
+        <tr>
+          <th class="cw-req-check"><input type="checkbox" id="cw-req-all" aria-label="{{ _('Select all') }}"></th>
+          <th><button type="button" data-sort="title">{{ _('Title') }}</button></th>
+          <th><button type="button" data-sort="author">{{ _('Author') }}</button></th>
+          <th><button type="button" data-sort="user">{{ _('Requested by') }}</button></th>
+          <th><button type="button" data-sort="created">{{ _('Date') }}</button></th>
+          <th><button type="button" data-sort="status">{{ _('Status') }}</button></th>
+          <th>{{ _('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody id="cw-req-body"></tbody>
+    </table>
+  </div>
+  <script id="cw-req-data" type="application/json">{{ request_rows|tojson }}</script>
+</div>
+{% endblock %}

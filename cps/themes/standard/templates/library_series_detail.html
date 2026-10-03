@@ -9,16 +9,6 @@
   {% if series_description %}
   <p class="cw-series-about" id="series-about">{{ series_description }}</p>
   {% endif %}
-  {% if current_user.role_admin() %}
-  <form class="cw-series-edit" method="post" action="{{ url_for('library_ui.save_series_description', series_id=series_id) }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label for="series-description">{{ _('Series description') }}</label>
-    <textarea class="form-control" id="series-description" name="description" rows="4">{{ series_description }}</textarea>
-    <label for="series-source">{{ _('Source link') }}</label>
-    <input class="form-control" id="series-source" name="source_url" value="{{ series_source_url }}">
-    <button class="btn btn-default" type="submit">{{ _('Save description') }}</button>
-  </form>
-  {% endif %}
   <section class="library-row-wrap" aria-labelledby="series-books-heading">
     <div class="library-row-head">
       <h2 id="series-books-heading">{{ _('Books in order') }}</h2>

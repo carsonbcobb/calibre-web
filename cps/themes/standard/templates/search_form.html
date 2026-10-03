@@ -51,7 +51,7 @@
       <div class="form-group col-sm-6" id="tag">
         <div><label for="include_tag">{{_('Tags')}}</label></div>
         <select class="selectpicker" name="include_tag" id="include_tag" data-live-search="true" data-style="btn-primary" data-dropup-auto="false" multiple>
-          {% for tag in tags %}
+          {% for tag in tags if not library_tag_hidden(tag.name) %}
           <option class="tags_click" value="{{tag.id}}">{{tag.name}}</option>
           {% endfor %}
         </select>
@@ -59,7 +59,7 @@
       <div class="form-group col-sm-6">
         <div><label for="exclude_tag">{{_('Exclude Tags')}}</label></div>
         <select class="selectpicker" name="exclude_tag" id="exclude_tag" data-live-search="true" data-style="btn-danger" data-dropup-auto="false" multiple>
-          {% for tag in tags %}
+          {% for tag in tags if not library_tag_hidden(tag.name) %}
           <option  class="tags_click" value="{{tag.id}}">{{tag.name}}</option>
           {% endfor %}
         </select>

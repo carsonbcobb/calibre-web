@@ -167,7 +167,7 @@ def _genres_home():
     from .units import display_units
 
     catalog, names = _world()
-    page = build_landing(display_units(catalog), names)
+    page = build_landing(display_units(catalog), names, books=catalog)
     hero = None
     pick = _solo_book(page.get("hero_book"), catalog)
     if pick:
@@ -193,7 +193,7 @@ def _genre_page(name):
 
     catalog, names = _world()
     mode = request.args.get("sort") or "added"
-    page = build_genre_page(name, display_units(catalog), names, mode)
+    page = build_genre_page(name, display_units(catalog), names, mode, books=catalog)
     if page is None:
         return None
     pick = _solo_book(page["hero_book"], catalog)

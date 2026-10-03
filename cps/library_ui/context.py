@@ -31,8 +31,20 @@ def library_context():
         "library_favicon_url": urls.get("favicon") or "",
         "library_login_collage": _login_collage_on(),
         "library_series_number": series_number,
+        "request_pending": _pending_requests(),
         **bar_context(),
     }
+
+
+def _pending_requests():
+    try:
+        from ..cw_login import current_user
+        if not current_user.is_authenticated or not current_user.role_admin():
+            return 0
+        from .requests import pending_count
+        return pending_count()
+    except Exception:
+        return 0
 
 
 def _login_collage_on():

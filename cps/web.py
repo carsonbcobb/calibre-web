@@ -274,7 +274,14 @@ def get_publishers_json():
 @web.route("/get_tags_json", methods=['GET'])
 @login_required_if_no_ano
 def get_tags_json():
-    return calibre_db.get_typeahead(db.Tags, request.args.get('q'), tag_filter=tags_filters())
+    import json
+    from .library_ui.shelf_config import tag_hidden
+    raw = calibre_db.get_typeahead(db.Tags, request.args.get('q'), tag_filter=tags_filters())
+    try:
+        items = [item for item in json.loads(raw) if not tag_hidden(item.get("name"))]
+    except (TypeError, ValueError):
+        return raw
+    return json.dumps(items)
 
 
 @web.route("/get_series_json", methods=['GET'])
@@ -699,8 +706,13 @@ def render_category_books(page, book_id, order):
             tagsname = tagsname.name
         else:
             abort(404)
+    from .library_ui.shelf_config import tag_hidden
+    if tag_hidden(tagsname):
+        title = _("Books")
+    else:
+        title = _("Category: %(name)s", name=tagsname)
     return render_title_template('index.html', random=random, entries=entries, pagination=pagination, id=book_id,
-                                 title=_("Category: %(name)s", name=tagsname), page="category", order=order[1])
+                                 title=title, page="category", order=order[1])
 
 
 def render_language_books(page, name, order):
@@ -1118,6 +1130,8 @@ def category_list():
                          .count())
         if no_tag_count:
             entries.append([db.Category(_("None"), "-1"), no_tag_count])
+        from .library_ui.shelf_config import tag_hidden
+        entries = [entry for entry in entries if not tag_hidden(getattr(entry[0], "name", ""))]
         entries = sorted(entries, key=lambda x: x[0].name.lower(), reverse=not order_no)
         char_list = generate_char_list(entries)
         return render_title_template('list.html', entries=entries, folder='web.books_list', charlist=char_list,

@@ -28,9 +28,12 @@
   {% endif %}
 
   {% if first_row %}
-  <section class="library-row-wrap" aria-labelledby="shelf-{{ first_row.id }}">
+  <section class="library-row-wrap{% if first_row.cover_only %} cw-cover-row{% endif %}" aria-labelledby="shelf-{{ first_row.id }}">
     <div class="library-row-head">
       <div>
+        {% if first_row.label %}
+        <p class="cw-row-label">{{ first_row.label }}</p>
+        {% endif %}
         <h2 id="shelf-{{ first_row.id }}">
           {% if first_row.href %}
           <a href="{{ first_row.href }}">{{ first_row.title }}</a>
@@ -53,9 +56,12 @@
   {{ discover_panel(discover_cards) }}
 
   {% for row in home_rows %}
-  <section class="library-row-wrap" aria-labelledby="shelf-{{ row.id }}">
+  <section class="library-row-wrap{% if row.cover_only %} cw-cover-row{% endif %}" aria-labelledby="shelf-{{ row.id }}">
     <div class="library-row-head">
       <div>
+        {% if row.label %}
+        <p class="cw-row-label">{{ row.label }}</p>
+        {% endif %}
         <h2 id="shelf-{{ row.id }}">
           {% if row.href %}
           <a href="{{ row.href }}">{{ row.title }}</a>

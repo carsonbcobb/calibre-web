@@ -50,7 +50,7 @@ NOISE_TAGS = {
 
 # Canonical genre -> neighbors used only to top up a short shelf.
 ADJACENCY = {
-    "fantasy": ("science fiction", "adventure", "mythology", "young adult"),
+    "fantasy": ("science fiction", "adventure", "mythology"),
     "science fiction": ("fantasy", "thriller", "dystopian", "adventure"),
     "horror": ("thriller", "mystery", "dark fantasy"),
     "thriller": ("mystery", "crime", "horror", "science fiction"),
@@ -74,9 +74,6 @@ ALIASES = {
     "mythology": "mythology",
     "folklore & mythology": "mythology",
     "fairy tales; folk tales; legends & mythology": "mythology",
-    "young adult": "young adult",
-    "young adult fiction": "young adult",
-    "ya": "young adult",
     "humour": "comedy",
     "humor": "comedy",
     "humorous": "comedy",
@@ -113,32 +110,15 @@ KEYWORDS = {
 
 
 def page_rows(skip_ids=None):
-    """Ranked shelves for the current user. Cached for ten minutes."""
+    """Ranked shelves for the current user. A new mix on every load."""
     from ..cw_login import current_user
 
-    from .units import metadata_mtime
-
-    skipped = tuple(sorted(int(item) for item in (skip_ids or []) if item))
-    key = (
-        int(getattr(current_user, "id", 0) or 0),
-        str(getattr(current_user, "filter_language", lambda: "all")()),
-        metadata_mtime(),
-        skipped,
-    )
-    now = time.time()
-    cached = _CACHE.get(key)
-    if cached and now - cached[0] < _TTL:
-        return _hydrate(cached[1])
+    user_id = int(getattr(current_user, "id", 0) or 0)
     try:
-        payload = _build(key[0], skipped)
+        payload = _build(user_id, skip_ids or ())
     except Exception as error:
         log.debug("Home shelves unavailable: %s", error)
         payload = []
-    _CACHE[key] = (now, payload)
-    if len(_CACHE) > 24:
-        oldest = sorted(_CACHE, key=lambda item: _CACHE[item][0])[:-12]
-        for item in oldest:
-            _CACHE.pop(item, None)
     return _hydrate(payload)
 
 
@@ -154,12 +134,6 @@ def editor_rows():
     for template in _static_templates():
         seen.add(template["id"])
         rows.append(_editor_item(template["id"], template["title"], template["subtitle"], overrides.get(template["id"]), False))
-    for slug, title, subtitle in (
-        ("fresh", _("Fresh on the shelf"), _("Added to the library most recently")),
-        ("continue_series", _("Keep the story going"), _("The next unread book in a series you started")),
-    ):
-        seen.add(slug)
-        rows.append(_editor_item(slug, title, subtitle, overrides.get(slug), False))
     for saved in overrides.values():
         if saved.slug in seen:
             continue
@@ -230,282 +204,46 @@ def delete_custom(slug):
 
 
 def _build(user_id, skip_ids=()):
+    from .shelf_engine import home_payload
+
     catalog = _catalog(user_id)
     if not catalog:
         return []
+    rows, plan = home_payload(user_id, skip_ids)
+    if plan.get("dropped"):
+        rows.append({
+            "id": "dropped",
+            "title": "Dropped rows",
+            "subtitle": "",
+            "label": "",
+            "book_ids": [],
+            "counts": {},
+            "reasons": [(title, "Fewer than 6 units passed every gate") for title in plan["dropped"]],
+            "kind": "discovery",
+            "source": "dropped",
+            "link": None,
+            "pinned": False,
+            "sort_order": 0,
+        })
     overrides = _override_map()
     hidden = {slug for slug, row in overrides.items() if row.hidden}
-    rng = random.Random("%s:%s" % (user_id, datetime.now().strftime("%Y%m%d")))
-    skipped = {int(item) for item in (skip_ids or []) if item}
-    items = [
-        item for item in _representatives(catalog)
-        if item["id"] not in skipped and not (set(item.get("member_ids") or ()) & skipped)
-    ]
-    templates = [item for item in _templates_for(catalog, items) if item["id"] not in hidden]
-    genre_links = {}
-    for item in catalog:
-        for tag_id, name in item["tag_pairs"]:
-            genre_links.setdefault(name, tag_id)
-    for template in templates:
-        source = template.get("source")
-        if source in genre_links and template["kind"] in ("genre", "mood"):
-            template["link"] = {"data": "category", "sort_param": "stored", "book_id": genre_links[source]}
-    custom_rows, custom_used = _custom_rows(catalog, items, overrides, hidden)
-    exclusive, used = _assign(
-        [item for item in items if item["id"] not in custom_used],
-        templates,
-        rng,
-        2,
-        _MIN_BOOKS,
-    )
-    used |= custom_used
-    rows = custom_rows + exclusive + _open_rows(items, rng, _MIN_BOOKS, hidden)
-    used = _rescue(rows, items, used, templates)
-    rows = _fill_page(rows, items, used, rng)
     rows = _apply_overrides(rows, overrides)
-    return _arrange(rows, rng)
+    custom_rows, _used = _custom_rows(catalog, catalog, overrides, hidden)
+    return rows + custom_rows
 
 
 def _static_templates():
+    from .shelf_config import ROWS
+
     return [
-        _genre("fantasy", _("Lose yourself in another world"), _("Fantasy, and the stories next door"), ("fantasy",), "genre", 0, ("magic", "dragon", "kingdom")),
-        _genre("scifi", _("Out there in the stars"), _("Science fiction, and what sits beside it"), ("science fiction",), "genre", 0, ("space",)),
-        _genre("dark", _("Can't sleep after this"), _("Horror, thrillers, and uneasy nights"), ("horror", "thriller", "dark fantasy"), "mood", 8, ("dark", "detective")),
-        _genre("litrpg", _("Dungeons, levels, and dark humor"), _("LitRPG, with fantasy and humor nearby"), ("litrpg",), "genre", 8),
-        _genre("heist", _("Heists, schemes, and clever plans"), _("Plans, cons, and jobs that go sideways"), (), "mood", 12, ("heist",)),
-        _genre("apocalypse", _("The end of the world as we know it"), _("Dystopia, collapse, and what comes after"), ("dystopian",), "mood", 8, ("apocalypse", "survival")),
-        _genre("classics", _("Timeless and worth the hype"), _("Classics, and books people still pass along"), ("classics",), "genre", 0),
-        _pred("new_series", _("Start a new series"), _("Book one, when the series has room to grow"), "discovery", "series", lambda item: item.get("kind") == "series" and not item["started"]),
-        _pred("finish_series", _("Finish what you started"), _("You already began these. The rest is waiting"), "discovery", "series", lambda item: item.get("kind") == "series" and item["started"] and item["unread_left"]),
-        _pred("standalones", _("Standalones, no commitment"), _("One book, then you are free"), "discovery", "discovery", lambda item: not item["series_id"]),
-        _pred("quick", _("Quick reads under 6 hours"), _("Short enough for a single sitting"), "length", "length", lambda item: item.get("kind") != "series" and item["minutes"] and item["minutes"] <= 360),
-        _pred("long", _("Big books for long nights"), _("Over fifteen hours"), "length", "length", lambda item: item["minutes"] and item["minutes"] >= 900),
-        _pred("gems", _("Hidden gems"), _("Strong books without a huge ratings count"), "discovery", "discovery", lambda item: item["real_tags"] and (item["rating"] is None or (item["rating"] >= 4 and (item["rating_count"] or 0) < 500))),
-        _pred("like_author", _("More like a favorite author"), _("Same neighborhood as their other work"), "discovery", "discovery", None),
-        _pred("because_finished", _("Because you finished a book"), _("Close to the last book you finished"), "discovery", "discovery", None),
+        {"id": row["id"], "title": row["title"], "subtitle": row["subtitle"]}
+        for row in ROWS
+        if "home" in row["where"]
     ]
 
 
-def _genre(slug, title, subtitle, genres, kind, bonus, keywords=()):
-    adjacent = []
-    for genre in genres:
-        for other in ADJACENCY.get(genre, ()):
-            if other not in genres and other not in adjacent:
-                adjacent.append(other)
-    return {
-        "id": slug,
-        "title": title,
-        "subtitle": subtitle,
-        "kind": kind,
-        "source": genres[0] if genres else slug,
-        "genres": genres,
-        "adjacent": tuple(adjacent),
-        "keywords": keywords,
-        "bonus": bonus,
-        "match": None,
-        "link": None,
-    }
-
-
-def _pred(slug, title, subtitle, kind, source, match):
-    return {
-        "id": slug,
-        "title": title,
-        "subtitle": subtitle,
-        "kind": kind,
-        "source": source,
-        "genres": (),
-        "adjacent": (),
-        "keywords": (),
-        "bonus": 0,
-        "match": match,
-        "link": None,
-    }
-
-
 def _templates_for(catalog, items):
-    templates = _static_templates()
-    last = _last_finished(catalog)
-    if last is None:
-        return [item for item in templates if item["id"] not in ("like_author", "because_finished")]
-    author = last["author_key"]
-    genres = last["tags"]
-    for template in templates:
-        if template["id"] == "like_author" and author:
-            template["title"] = _("More like %(author)s", author=last["author_name"])
-            series_id = last.get("series_id")
-            template["match"] = lambda item, author=author, genres=genres, series_id=series_id: (not series_id or item.get("series_id") != series_id) and (item["author_key"] == author or bool(item["tags"] & genres))
-        elif template["id"] == "because_finished":
-            template["title"] = _("Because you finished %(title)s", title=_short(last["title"]))
-            finished_id = last["id"]
-            series_id = last.get("series_id")
-            template["match"] = lambda item, genres=genres, finished_id=finished_id, series_id=series_id: item["id"] != finished_id and (not series_id or item.get("series_id") != series_id) and bool(item["tags"] & _with_neighbors(genres))
-    return templates
-
-
-def _custom_templates(overrides, hidden):
-    found = []
-    for saved in overrides.values():
-        if saved.slug in hidden or not saved.source_kind or not str(saved.slug).startswith("custom-"):
-            continue
-        ids = _id_set(saved.source_value)
-        found.append({
-            "id": saved.slug,
-            "title": saved.title or _("A shelf you made"),
-            "subtitle": saved.subtitle or _("Chosen for this library"),
-            "kind": "custom",
-            "source": "custom",
-            "genres": (),
-            "adjacent": (),
-            "keywords": (),
-            "bonus": 0,
-            "match": None,
-            "link": None,
-            "custom_kind": saved.source_kind,
-            "custom_ids": ids,
-        })
-    return found
-
-
-def _assign(items, templates, rng, author_cap, minimum):
-    """Put each card on its best shelf. A series is already one card."""
-    template_by_id = {template["id"]: template for template in templates}
-    options = {}
-    for item in items:
-        ranked = []
-        for template in templates:
-            score = _score(item, template)
-            if score >= 60:
-                ranked.append((score, rng.random(), template["id"]))
-        ranked.sort(reverse=True)
-        options[item["id"]] = ranked
-    claimed = {template["id"]: [] for template in templates}
-    authors = {template["id"]: {} for template in templates}
-    owner = {}
-
-    def give(item, template_id):
-        claimed[template_id].append(item)
-        _author_add(authors[template_id], item)
-        owner[item["id"]] = template_id
-
-    def take(item):
-        template_id = owner.pop(item["id"], None)
-        if template_id is None:
-            return
-        claimed[template_id] = [other for other in claimed[template_id] if other["id"] != item["id"]]
-        authors[template_id] = {}
-        for other in claimed[template_id]:
-            _author_add(authors[template_id], other)
-
-    def preference(template_id):
-        count = len(claimed[template_id])
-        kind = template_by_id[template_id]["kind"]
-        # Finish one shelf before opening another, so a tie does not leave every shelf short.
-        return (
-            0 if count < minimum else 1,
-            -(count if count < minimum else 0),
-            0 if kind in ("genre", "mood") else 1,
-            rng.random(),
-        )
-
-    def choose(item, window, limit):
-        ranked = options.get(item["id"]) or []
-        if not ranked:
-            return None
-        best = ranked[0][0]
-        found = []
-        for score, _roll, template_id in ranked:
-            if score < best - window:
-                break
-            if template_id in closed:
-                continue
-            if len(claimed[template_id]) >= limit:
-                continue
-            if not _author_ok(authors[template_id], item, author_cap):
-                continue
-            found.append(template_id)
-        if not found:
-            return None
-        found.sort(key=preference)
-        return found[0]
-
-    closed = set()
-    for template_id in (
-        "dark", "litrpg", "apocalypse", "heist",
-        "fantasy", "scifi", "classics",
-        "long", "quick", "new_series", "finish_series", "standalones",
-    ):
-        if template_id not in claimed:
-            continue
-        matches = []
-        for item in items:
-            if item["id"] in owner:
-                continue
-            ranked = options.get(item["id"]) or []
-            if not ranked:
-                continue
-            best = ranked[0][0]
-            for score, _roll, tid in ranked:
-                if tid != template_id:
-                    continue
-                if score >= 60 and score >= best - 15:
-                    matches.append((score, rng.random(), item))
-                break
-        matches.sort(reverse=True)
-        for _score_value, _roll, item in matches:
-            if len(claimed[template_id]) >= minimum:
-                break
-            if not _author_ok(authors[template_id], item, author_cap):
-                continue
-            give(item, template_id)
-        if len(claimed[template_id]) < minimum:
-            for item in list(claimed[template_id]):
-                take(item)
-            closed.add(template_id)
-
-    ordered = sorted(
-        items,
-        key=lambda item: (-(options[item["id"]][0][0] if options[item["id"]] else 0), rng.random()),
-    )
-    pending = []
-    for item in ordered:
-        if item["id"] in owner:
-            continue
-        template_id = choose(item, 0, _MAIN_TARGET)
-        if template_id:
-            give(item, template_id)
-        else:
-            pending.append(item)
-    for item in pending:
-        template_id = choose(item, 15, _MAIN_TARGET) or choose(item, 15, _MAX_BOOKS)
-        if template_id:
-            give(item, template_id)
-
-    unassigned = [item for item in items if item["id"] not in owner]
-    rng.shuffle(unassigned)
-    for template in templates:
-        template_id = template["id"]
-        if len(claimed[template_id]) >= _MAIN_TARGET or not template.get("adjacent"):
-            continue
-        for item in list(unassigned):
-            if len(claimed[template_id]) >= _MAIN_TARGET:
-                break
-            if item["id"] in owner or not _adjacent_hit(item, template):
-                continue
-            if not _author_ok(authors[template_id], item, author_cap):
-                continue
-            give(item, template_id)
-
-    rows = []
-    for template in templates:
-        bucket = claimed[template["id"]]
-        if len(bucket) < minimum:
-            for item in bucket:
-                owner.pop(item["id"], None)
-            continue
-        rng.shuffle(bucket)
-        rows.append(_pack(template, bucket[:_MAX_BOOKS]))
-    return rows, set(owner)
+    return []
 
 
 def _custom_rows(catalog, reps, overrides, hidden):
@@ -565,191 +303,6 @@ def _custom_match(item, kind, ids):
     if kind == "series":
         return item["series_id"] in ids
     return item["id"] in ids
-
-
-def _rescue(rows, items, used, templates):
-    """Move a leftover card onto a shelf that already fits it."""
-    by_id = {item["id"]: item for item in items}
-    homes = {row["id"]: row for row in rows}
-    for item in items:
-        if item["id"] in used:
-            continue
-        ranked = []
-        global_best = 0
-        for template in templates:
-            score = _score(item, template)
-            if score > global_best:
-                global_best = score
-            if template["id"] in homes and score >= 60:
-                ranked.append((score, template["id"]))
-        if not ranked:
-            continue
-        ranked.sort(reverse=True)
-        for score, template_id in ranked:
-            if score < global_best - 15:
-                continue
-            row = homes[template_id]
-            if str(row["id"]).startswith("custom-") or len(row["book_ids"]) >= _MAX_BOOKS:
-                continue
-            authors = {}
-            for book_id in row["book_ids"]:
-                other = by_id.get(book_id)
-                if other is not None:
-                    _author_add(authors, other)
-            if not _author_ok(authors, item, 2):
-                continue
-            row["book_ids"].append(item["id"])
-            if item["series_len"] > 1:
-                row.setdefault("counts", {})[item["id"]] = item["series_len"]
-            used.add(item["id"])
-            break
-    return used
-
-
-def _open_rows(items, rng, minimum, hidden):
-    rows = []
-    if "fresh" not in hidden:
-        fresh = []
-        for item in _fresh(items)[:_MAX_BOOKS]:
-            card = dict(item)
-            card["id"] = item.get("fresh_id") or item["id"]
-            fresh.append(card)
-        fresh = _author_limited_items(fresh, 2)
-        if len(fresh) >= minimum:
-            rng.shuffle(fresh)
-            rows.append(_pack({
-                "id": "fresh",
-                "title": _("Fresh on the shelf"),
-                "subtitle": _("Added to the library most recently"),
-                "kind": "recent",
-                "source": "recent",
-                "link": {"data": "newest", "sort_param": "stored"},
-            }, fresh))
-    if "continue_series" not in hidden:
-        ongoing = [item for item in items if item.get("kind") == "series" and item["started"] and item["unread_left"]]
-        ongoing = _author_limited_items(ongoing, 2)
-        if len(ongoing) >= minimum:
-            rng.shuffle(ongoing)
-            rows.append(_pack({
-                "id": "continue_series",
-                "title": _("Keep the story going"),
-                "subtitle": _("The next unread book in a series you started"),
-                "kind": "discovery",
-                "source": "continue",
-                "link": None,
-            }, ongoing[:_MAX_BOOKS]))
-    return rows
-
-
-def _fill_page(rows, items, used, rng):
-    """Keep at least six shelves. Extra cards come off the longest shelves first."""
-    by_id = {item["id"]: item for item in items}
-    used = set(used)
-    guard = 0
-    while len(rows) < 6 and guard < 8:
-        guard += 1
-        need = 6 - len(rows)
-        pool_ids = [item["id"] for item in items if item["id"] not in used]
-        rng.shuffle(pool_ids)
-        if len(pool_ids) < need * _MIN_BOOKS:
-            donors = []
-            for floor in (_MAIN_TARGET, _MIN_BOOKS):
-                donors = [
-                    row for row in rows
-                    if row["id"] not in ("fresh", "continue_series")
-                    and not str(row["id"]).startswith("fallback")
-                    and not str(row["id"]).startswith("custom-")
-                    and len(row["book_ids"]) > floor
-                ]
-                if donors:
-                    break
-            donors.sort(key=lambda row: len(row["book_ids"]), reverse=True)
-            for donor in donors:
-                floor = _MAIN_TARGET if len(donor["book_ids"]) > _MAIN_TARGET else _MIN_BOOKS
-                spare = len(donor["book_ids"]) - floor
-                take_n = min(spare, need * _MIN_BOOKS - len(pool_ids))
-                if take_n <= 0:
-                    continue
-                harvested = donor["book_ids"][-take_n:]
-                donor["book_ids"] = donor["book_ids"][:-take_n]
-                counts = donor.get("counts") or {}
-                for book_id in harvested:
-                    counts.pop(book_id, None)
-                    used.discard(book_id)
-                    pool_ids.append(book_id)
-                if len(pool_ids) >= need * _MIN_BOOKS:
-                    break
-        if len(pool_ids) < _MIN_BOOKS:
-            break
-        need = 6 - len(rows)
-        reserve = max(0, (need - 1) * _MIN_BOOKS)
-        size = min(_MAX_BOOKS, len(pool_ids) - reserve)
-        if size < _MIN_BOOKS:
-            break
-        chunk_ids = _author_limited(pool_ids, by_id, size, 2)
-        if len(chunk_ids) < _MIN_BOOKS:
-            chunk_ids = pool_ids[:size]
-        bucket = [by_id[book_id] for book_id in chunk_ids if book_id in by_id]
-        if len(bucket) < _MIN_BOOKS:
-            break
-        for item in bucket:
-            used.add(item["id"])
-        rows.append(_pack({
-            "id": "fallback-%s" % sum(1 for row in rows if str(row["id"]).startswith("fallback")),
-            "title": _("Worth a look"),
-            "subtitle": _("A mix from the rest of the shelf"),
-            "kind": "discovery",
-            "source": "fallback",
-            "link": None,
-        }, bucket))
-    return rows
-
-
-def _author_limited_items(items, cap):
-    chosen = []
-    counts = {}
-    for item in items:
-        if not _author_ok(counts, item, cap):
-            continue
-        chosen.append(item)
-        _author_add(counts, item)
-    return chosen
-
-
-def _author_limited(ids, by_id, size, cap):
-    chosen = []
-    counts = {}
-    for book_id in ids:
-        item = by_id.get(book_id)
-        if item is None or not _author_ok(counts, item, cap):
-            continue
-        chosen.append(book_id)
-        _author_add(counts, item)
-        if len(chosen) >= size:
-            break
-    return chosen
-
-
-def _chunks(items, rng, minimum, title, subtitle):
-    if len(items) < minimum:
-        return []
-    rng.shuffle(items)
-    rows = []
-    index = 0
-    while len(items) - index >= minimum and len(rows) < 3:
-        chunk = items[index:index + _MAX_BOOKS]
-        index += len(chunk)
-        if len(chunk) < minimum:
-            break
-        rows.append(_pack({
-            "id": "fallback-%s" % len(rows),
-            "title": title,
-            "subtitle": subtitle,
-            "kind": "discovery",
-            "source": "fallback",
-            "link": None,
-        }, chunk))
-    return rows
 
 
 def _pack(template, bucket):
@@ -951,10 +504,9 @@ def _catalog(user_id):
 
 
 def _canonical(name):
-    folded = (name or "").strip().casefold()
-    if not folded or folded in NOISE_TAGS:
-        return ""
-    return ALIASES.get(folded, folded)
+    from .shelf_config import bucket_name_for_tag
+
+    return bucket_name_for_tag(name).casefold()
 
 
 def _plain(value):
@@ -1027,6 +579,8 @@ def _hydrate(payload):
                 "id": row.get("id") or "",
                 "title": title,
                 "subtitle": row.get("subtitle") or "",
+                "label": row.get("label") or "",
+                "cover_only": bool(row.get("cover_only")),
                 "books": chosen,
                 "href": href,
             })

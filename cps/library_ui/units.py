@@ -399,6 +399,8 @@ def _signature(catalog):
             book.get("minutes"),
             book.get("rating"),
             str(book.get("stamp") or ""),
+            book.get("year") or 0,
+            1 if book.get("raw_tags") else 0,
         ))
     return tuple(rows)
 

@@ -78,6 +78,20 @@ def present(series_id, author="", count=0, minutes=None):
     }
 
 
+def editor_rows():
+    """Every series, with the description an admin can edit."""
+    rows = []
+    for series_id, name in sorted(_series_names().items(), key=lambda item: item[1].casefold()):
+        text, url = form_text(series_id)
+        rows.append({
+            "id": series_id,
+            "name": name,
+            "description": text,
+            "source_url": url,
+        })
+    return rows
+
+
 def form_text(series_id):
     """Stored description for the admin editor. Empty when the page is on the fallback line."""
     row = _row(series_id)

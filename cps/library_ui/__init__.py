@@ -48,3 +48,5 @@ def register_library_ui(app):
     app.jinja_env.globals["library_comments"] = comments_for_book
     app.jinja_env.globals["library_comment_author"] = user_name
     app.jinja_env.globals["library_send_choice"] = send_choice
+    from .shelf_config import tag_hidden
+    app.jinja_env.globals["library_tag_hidden"] = tag_hidden

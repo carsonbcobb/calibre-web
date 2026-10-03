@@ -1,0 +1,14 @@
+<details class="cw-discover-debug" open>
+  <summary>{{ summary or _('Discover debug') }}</summary>
+  {% for block in blocks %}
+  <section>
+    <h3>{{ block.title }}</h3>
+    <p>{{ _('Template') }}: {{ block.template }}</p>
+    <ul>
+      {% for book in block.books %}
+      <li>{{ book.kind or 'book' }}: {{ book.title }}. {{ book.reason }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+</details>

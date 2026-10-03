@@ -81,6 +81,29 @@
   {% if report.accolades.missing %}
   <p>{{ _('Still without an accolade: %(titles)s', titles=report.accolades.missing|join(', ')) }}</p>
   {% endif %}
+  {% if report.evidence %}
+  <h2>{{ _('Evidence') }}</h2>
+  <p>{{ _('No page count: %(count)s.', count=report.evidence.missing_pages|length) }}</p>
+  {% if report.evidence.missing_pages %}
+  <p class="cw-row-sub">{{ report.evidence.missing_pages|join(', ') }}</p>
+  {% endif %}
+  <p>{{ _('No moods: %(count)s. Use Fill moods on the scan page. Moods are never guessed.', count=report.evidence.missing_moods|length) }}</p>
+  {% if report.evidence.missing_moods %}
+  <p class="cw-row-sub">{{ report.evidence.missing_moods|join(', ') }}</p>
+  {% endif %}
+  <ul>
+    {% for row in report.evidence.rows %}
+    <li>
+      {{ row.title }}: {{ _('qualified %(qualified)s, kept %(kept)s', qualified=row.qualified, kept=row.kept) }}
+      {% if row.dropped %}({{ _('dropped') }}){% endif %}
+      {% if row.gates %}
+      {{ _('Failed gates:') }}
+      {% for name, count in row.gates.items() %}{{ name }} {{ count }}{% if not loop.last %}, {% endif %}{% endfor %}
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
   <h2>{{ _('Pages') }}</h2>
   {% for page in report.pages %}
   <section class="cw-coverage-page">

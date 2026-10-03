@@ -1534,19 +1534,28 @@
   if (!collage) {
     return;
   }
-  var narrow = window.matchMedia("(max-width: 720px)").matches;
-  var coverW = narrow ? 110 : 148;
-  var coverH = narrow ? 165 : 222;
-  var gap = 14;
-  var visible = Math.max(4, Math.ceil(window.innerWidth / (coverW + gap)));
-  var perRow = visible * 2;
-  var rows = Math.max(5, Math.ceil((window.innerHeight * 1.35) / (coverH + gap)));
-  while (rows * perRow * 2 > 300 && perRow > visible) {
-    perRow -= 1;
+  var coverW = 148;
+  var coverH = 222;
+  var gap = 12;
+  var visible = 8;
+  var perRow = 16;
+  var rows = 6;
+
+  function metrics() {
+    var narrow = window.matchMedia("(max-width: 720px)").matches;
+    var height = window.innerHeight || document.documentElement.clientHeight || 800;
+    var width = window.innerWidth || document.documentElement.clientWidth || 1280;
+    coverH = narrow ? 165 : 222;
+    coverW = Math.round(coverH * 2 / 3);
+    gap = 12;
+    visible = Math.max(4, Math.ceil(width / (coverW + gap)));
+    perRow = visible * 2;
+    rows = Math.ceil(height / (coverH + gap)) + 1;
+    collage.style.setProperty("--cw-login-row", coverH + "px");
+    collage.style.setProperty("--cw-login-gap", gap + "px");
   }
-  while (rows * perRow * 2 > 300 && rows > 5) {
-    rows -= 1;
-  }
+
+  metrics();
 
   function shuffle(list) {
     var copy = list.slice();
@@ -1728,6 +1737,60 @@
     collage.classList.add("is-ready");
   }
 
+  function trackMotion(track, rowIndex) {
+    var duration = 60 + ((rowIndex * 47) % 61);
+    var delay = Math.round(duration * ((rowIndex * 0.37) % 1));
+    track.style.animationDuration = duration + "s";
+    track.style.animationDelay = "-" + delay + "s";
+  }
+
+  function coverFrame(book) {
+    var frame = document.createElement("span");
+    frame.className = "library-login-cover";
+    if (!book) {
+      return frame;
+    }
+    var image = document.createElement("img");
+    image.src = book.url;
+    image.alt = "";
+    image.width = coverW;
+    image.height = coverH;
+    image.decoding = "async";
+    image.addEventListener("load", function () {
+      image.classList.add("is-loaded");
+      show();
+    });
+    image.addEventListener("error", function () {
+      image.remove();
+    });
+    frame.appendChild(image);
+    return frame;
+  }
+
+  function paintShell() {
+    collage.textContent = "";
+    var rowIndex;
+    for (rowIndex = 0; rowIndex < rows; rowIndex += 1) {
+      var line = document.createElement("div");
+      line.className = "library-login-row";
+      var track = document.createElement("div");
+      track.className = "library-login-row-track";
+      trackMotion(track, rowIndex);
+      var copy;
+      for (copy = 0; copy < 2; copy += 1) {
+        var set = document.createElement("div");
+        set.className = "library-login-row-set";
+        var slot;
+        for (slot = 0; slot < perRow; slot += 1) {
+          set.appendChild(coverFrame(null));
+        }
+        track.appendChild(set);
+      }
+      line.appendChild(track);
+      collage.appendChild(line);
+    }
+  }
+
   function render(built) {
     var shown = {};
     collage.textContent = "";
@@ -1739,28 +1802,14 @@
       line.className = "library-login-row";
       var track = document.createElement("div");
       track.className = "library-login-row-track";
-      var duration = 60 + ((rowIndex * 47) % 61);
-      var delay = Math.round(duration * ((rowIndex * 0.37) % 1));
-      track.style.animationDuration = duration + "s";
-      track.style.animationDelay = "-" + delay + "s";
+      trackMotion(track, rowIndex);
       var copy;
       for (copy = 0; copy < 2; copy += 1) {
         var set = document.createElement("div");
         set.className = "library-login-row-set";
         row.forEach(function (book) {
           shown[book.id] = true;
-          var image = document.createElement("img");
-          image.src = book.url;
-          image.alt = "";
-          image.width = coverW;
-          image.height = coverH;
-          image.loading = "lazy";
-          image.decoding = "async";
-          image.addEventListener("load", show);
-          image.addEventListener("error", function () {
-            image.remove();
-          });
-          set.appendChild(image);
+          set.appendChild(coverFrame(book));
         });
         track.appendChild(set);
       }
@@ -1781,6 +1830,22 @@
     collage.classList.toggle("is-paused", document.hidden);
   });
 
+  paintShell();
+
+  var lastBooks = null;
+  var resizeTimer = 0;
+  window.addEventListener("resize", function () {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(function () {
+      metrics();
+      if (lastBooks) {
+        render(build(lastBooks));
+      } else {
+        paintShell();
+      }
+    }, 150);
+  });
+
   fetch(collage.getAttribute("data-url"), {
     credentials: "same-origin",
     headers: { "Accept": "application/json" }
@@ -1790,6 +1855,7 @@
     if (!Array.isArray(books) || !books.length) {
       return;
     }
+    lastBooks = books;
     render(build(books));
     window.setTimeout(show, 1200);
   }).catch(function () {
@@ -2205,3 +2271,482 @@ document.querySelectorAll(".cw-hero-quotes").forEach(function (root) {
   root.addEventListener("mouseleave", start);
   start();
 });
+
+(function () {
+  function toast(message, isError) {
+    var node = document.getElementById("cw-toast");
+    if (!node) {
+      node = document.createElement("div");
+      node.id = "cw-toast";
+      node.className = "cw-toast";
+      node.setAttribute("role", "status");
+      document.body.appendChild(node);
+    }
+    node.textContent = message;
+    node.classList.toggle("is-error", !!isError);
+    node.hidden = false;
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(function () {
+      node.hidden = true;
+    }, 2200);
+  }
+
+  function token() {
+    var input = document.querySelector("input[name='csrf_token']");
+    return input ? input.value : "";
+  }
+
+  var page = document.getElementById("cw-request");
+  if (page) {
+    var form = document.getElementById("cw-request-form");
+    var submit = form.querySelector(".cw-request-submit");
+    var match = document.getElementById("cw-request-match");
+    var matchLink = document.getElementById("cw-request-match-link");
+    var seenKey = "cw-request-seen";
+
+    function fieldError(name, text) {
+      var node = form.querySelector('.cw-request-error[data-for="' + name + '"]');
+      if (!node) {
+        return;
+      }
+      node.textContent = text || "";
+      node.hidden = !text;
+    }
+
+    function clearErrors() {
+      fieldError("title", "");
+      fieldError("author", "");
+      fieldError("form", "");
+    }
+
+    function clearMatch() {
+      form.querySelector("[name='confirm']").value = "";
+      match.hidden = true;
+      matchLink.href = "";
+      matchLink.textContent = "";
+    }
+
+    Array.prototype.forEach.call(form.querySelectorAll("input[type='text']"), function (input) {
+      input.addEventListener("input", clearMatch);
+    });
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      clearErrors();
+      var title = form.querySelector("[name='title']").value.trim();
+      var author = form.querySelector("[name='author']").value.trim();
+      var blocked = false;
+      if (!title) {
+        fieldError("title", page.getAttribute("data-need-title") || "Enter a title");
+        blocked = true;
+      }
+      if (!author) {
+        fieldError("author", page.getAttribute("data-need-author") || "Enter an author");
+        blocked = true;
+      }
+      if (blocked) {
+        return;
+      }
+      submit.disabled = true;
+      submit.textContent = submit.getAttribute("data-busy") || "Sending";
+      var body = new URLSearchParams();
+      body.set("csrf_token", token());
+      body.set("title", title);
+      body.set("author", author);
+      body.set("confirm", form.querySelector("[name='confirm']").value || "");
+      fetch(page.getAttribute("data-save"), {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString()
+      }).then(function (response) {
+        return response.json().then(function (payload) {
+          return { ok: response.ok, payload: payload };
+        });
+      }).then(function (result) {
+        var payload = result.payload || {};
+        if (payload.match && !payload.ok) {
+          match.hidden = false;
+          matchLink.href = payload.match.url || "";
+          matchLink.textContent = payload.match.title || "";
+          form.querySelector("[name='confirm']").value = "1";
+          return;
+        }
+        if (payload.errors) {
+          fieldError("title", payload.errors.title || "");
+          fieldError("author", payload.errors.author || "");
+          return;
+        }
+        if (!payload.ok) {
+          fieldError("form", payload.message || page.getAttribute("data-fail"));
+          return;
+        }
+        toast(page.getAttribute("data-sent") || "Request sent");
+        form.querySelector("[name='title']").value = "";
+        form.querySelector("[name='author']").value = "";
+        clearMatch();
+        addRequest(payload.request);
+      }).catch(function () {
+        fieldError("form", page.getAttribute("data-fail"));
+      }).then(function () {
+        submit.disabled = false;
+        submit.textContent = submit.getAttribute("data-label") || "Request";
+      });
+    });
+
+    function addRequest(item) {
+      if (!item) {
+        return;
+      }
+      var list = document.getElementById("cw-request-list");
+      if (!list) {
+        list = document.createElement("section");
+        list.className = "cw-request-list";
+        list.id = "cw-request-list";
+        var heading = document.createElement("h3");
+        heading.textContent = page.getAttribute("data-yours") || "Your requests";
+        var ul = document.createElement("ul");
+        list.appendChild(heading);
+        list.appendChild(ul);
+        page.appendChild(list);
+      }
+      var ulNode = list.querySelector("ul");
+      var li = document.createElement("li");
+      li.setAttribute("data-id", String(item.id));
+      li.setAttribute("data-status", item.status || "pending");
+      var copy = document.createElement("div");
+      var strong = document.createElement("strong");
+      strong.textContent = item.title || "";
+      var author = document.createElement("span");
+      author.textContent = item.author || "";
+      var time = document.createElement("time");
+      time.dateTime = item.created || "";
+      time.textContent = item.date || "";
+      copy.appendChild(strong);
+      copy.appendChild(author);
+      copy.appendChild(time);
+      var side = document.createElement("div");
+      side.className = "cw-request-side";
+      var chip = document.createElement("span");
+      chip.className = "cw-request-chip is-pending";
+      chip.textContent = page.getAttribute("data-pending-label") || "Pending";
+      var remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "cw-request-remove";
+      remove.setAttribute("data-url", page.getAttribute("data-save") + "/" + item.id + "/delete");
+      remove.textContent = page.getAttribute("data-remove-label") || "Remove";
+      side.appendChild(chip);
+      side.appendChild(remove);
+      li.appendChild(copy);
+      li.appendChild(side);
+      ulNode.insertBefore(li, ulNode.firstChild);
+    }
+
+    page.addEventListener("click", function (event) {
+      var button = event.target.closest(".cw-request-remove");
+      if (!button) {
+        return;
+      }
+      var body = new URLSearchParams();
+      body.set("csrf_token", token());
+      fetch(button.getAttribute("data-url"), {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString()
+      }).then(function (response) {
+        if (!response.ok) {
+          throw new Error("remove");
+        }
+        var item = button.closest("li");
+        var list = document.getElementById("cw-request-list");
+        if (item) {
+          item.remove();
+        }
+        if (list && !list.querySelector("li")) {
+          list.remove();
+        }
+      }).catch(function () {
+        toast(page.getAttribute("data-fail"), true);
+      });
+    });
+
+    var fresh = (page.getAttribute("data-fulfilled") || "").split(",").filter(Boolean);
+    var seen = [];
+    try {
+      seen = JSON.parse(window.localStorage.getItem(seenKey) || "[]");
+    } catch (error) {
+      seen = [];
+    }
+    var unseen = fresh.filter(function (id) {
+      return seen.indexOf(id) === -1;
+    });
+    if (unseen.length) {
+      toast(page.getAttribute("data-fulfilled-note") || "A request was fulfilled");
+      window.localStorage.setItem(seenKey, JSON.stringify(seen.concat(unseen)));
+    }
+  }
+
+  var admin = document.getElementById("cw-req-admin");
+  if (!admin) {
+    return;
+  }
+  var dataNode = document.getElementById("cw-req-data");
+  var rows = [];
+  try {
+    rows = JSON.parse(dataNode ? dataNode.textContent || "[]" : "[]");
+  } catch (error) {
+    rows = [];
+  }
+  var body = document.getElementById("cw-req-body");
+  var find = document.getElementById("cw-req-find");
+  var bulk = document.getElementById("cw-req-bulk");
+  var allBox = document.getElementById("cw-req-all");
+  var filter = "pending";
+  var sortKey = "created";
+  var sortDir = -1;
+  var labels = {
+    pending: admin.getAttribute("data-pending-label") || "Pending",
+    fulfilled: admin.getAttribute("data-fulfilled-label") || "Fulfilled",
+    declined: admin.getAttribute("data-declined-label") || "Declined"
+  };
+
+  function visibleRows() {
+    var query = (find.value || "").trim().toLowerCase();
+    var list = rows.filter(function (row) {
+      if (filter !== "all" && row.status !== filter) {
+        return false;
+      }
+      if (!query) {
+        return true;
+      }
+      var haystack = [row.title, row.author, row.user].join(" ").toLowerCase();
+      return haystack.indexOf(query) !== -1;
+    });
+    list.sort(function (left, right) {
+      var a = String(left[sortKey] || "").toLowerCase();
+      var b = String(right[sortKey] || "").toLowerCase();
+      if (a < b) {
+        return -1 * sortDir;
+      }
+      if (a > b) {
+        return 1 * sortDir;
+      }
+      return 0;
+    });
+    return list;
+  }
+
+  function searchHref(kind, row) {
+    var query = encodeURIComponent([row.title, row.author].join(" ").trim());
+    if (kind === "hardcover") {
+      return "https://hardcover.app/search?q=" + query;
+    }
+    return "https://www.google.com/search?q=" + query;
+  }
+
+  function actionButton(label, action, id) {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.setAttribute("data-action", action);
+    button.setAttribute("data-id", String(id));
+    return button;
+  }
+
+  function searchLink(label, href) {
+    var link = document.createElement("a");
+    link.href = href;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = label;
+    return link;
+  }
+
+  function paint() {
+    var selected = {};
+    Array.prototype.forEach.call(body.querySelectorAll("input[type='checkbox']:checked"), function (box) {
+      selected[box.value] = true;
+    });
+    body.textContent = "";
+    visibleRows().forEach(function (row) {
+      var tr = document.createElement("tr");
+      tr.setAttribute("data-id", String(row.id));
+      var check = document.createElement("td");
+      check.className = "cw-req-check";
+      var box = document.createElement("input");
+      box.type = "checkbox";
+      box.value = String(row.id);
+      box.checked = !!selected[String(row.id)];
+      check.appendChild(box);
+      var title = document.createElement("td");
+      title.textContent = row.title || "";
+      var author = document.createElement("td");
+      author.textContent = row.author || "";
+      var user = document.createElement("td");
+      user.textContent = row.user || "";
+      var date = document.createElement("td");
+      date.textContent = row.date || "";
+      var status = document.createElement("td");
+      var chip = document.createElement("span");
+      chip.className = "cw-request-chip is-" + (row.status || "pending");
+      chip.textContent = labels[row.status] || "Pending";
+      status.appendChild(chip);
+      var actions = document.createElement("td");
+      actions.className = "cw-req-actions";
+      var inline = document.createElement("div");
+      inline.className = "cw-req-inline";
+      var menu = document.createElement("details");
+      menu.className = "cw-req-menu";
+      var summary = document.createElement("summary");
+      summary.setAttribute("aria-label", "Actions");
+      summary.textContent = "...";
+      var menuBox = document.createElement("div");
+      [inline, menuBox].forEach(function (slot) {
+        slot.appendChild(actionButton(admin.getAttribute("data-mark") || "Mark fulfilled", "fulfilled", row.id));
+        slot.appendChild(actionButton(admin.getAttribute("data-decline") || "Decline", "declined", row.id));
+        slot.appendChild(actionButton(admin.getAttribute("data-delete") || "Delete", "delete", row.id));
+        slot.appendChild(searchLink(admin.getAttribute("data-hardcover") || "Search Hardcover", searchHref("hardcover", row)));
+        slot.appendChild(searchLink(admin.getAttribute("data-google") || "Search Google", searchHref("google", row)));
+      });
+      menu.appendChild(summary);
+      menu.appendChild(menuBox);
+      inline && actions.appendChild(inline);
+      actions.appendChild(menu);
+      [check, title, author, user, date, status, actions].forEach(function (cell) {
+        tr.appendChild(cell);
+      });
+      body.appendChild(tr);
+    });
+    var boxes = body.querySelectorAll("input[type='checkbox']");
+    var checked = body.querySelectorAll("input[type='checkbox']:checked").length;
+    allBox.checked = boxes.length > 0 && checked === boxes.length;
+    bulk.hidden = checked === 0;
+  }
+
+  function update(action, ids) {
+    if (!ids.length) {
+      return;
+    }
+    var payload = new URLSearchParams();
+    payload.set("csrf_token", token());
+    payload.set("action", action);
+    ids.forEach(function (id) {
+      payload.append("ids", id);
+    });
+    fetch(admin.getAttribute("data-update"), {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: payload.toString()
+    }).then(function (response) {
+      if (!response.ok) {
+        throw new Error("update");
+      }
+      return response.json();
+    }).then(function () {
+      var wanted = {};
+      ids.forEach(function (id) {
+        wanted[String(id)] = true;
+      });
+      if (action === "delete") {
+        rows = rows.filter(function (row) {
+          return !wanted[String(row.id)];
+        });
+        toast(ids.length > 1 ? (admin.getAttribute("data-removed") || "Requests removed") : (admin.getAttribute("data-gone") || "Request deleted"));
+      } else {
+        rows.forEach(function (row) {
+          if (wanted[String(row.id)]) {
+            row.status = action;
+          }
+        });
+        var one = action === "fulfilled" ? admin.getAttribute("data-done") : admin.getAttribute("data-no");
+        toast(ids.length > 1 ? (admin.getAttribute("data-updated") || "Requests updated") : (one || "Request updated"));
+      }
+      paint();
+    }).catch(function () {
+      toast(admin.getAttribute("data-fail") || "Could not save that request", true);
+    });
+  }
+
+  admin.addEventListener("click", function (event) {
+    var filterButton = event.target.closest(".cw-req-filters button");
+    if (filterButton) {
+      filter = filterButton.getAttribute("data-status") || "all";
+      Array.prototype.forEach.call(admin.querySelectorAll(".cw-req-filters button"), function (button) {
+        button.classList.toggle("is-on", button === filterButton);
+      });
+      if (allBox) {
+        allBox.checked = false;
+      }
+      paint();
+      return;
+    }
+    var sortButton = event.target.closest("th button[data-sort]");
+    if (sortButton) {
+      var key = sortButton.getAttribute("data-sort");
+      sortDir = sortKey === key ? sortDir * -1 : 1;
+      sortKey = key;
+      Array.prototype.forEach.call(admin.querySelectorAll("th button"), function (button) {
+        button.classList.toggle("is-sorted", button === sortButton);
+      });
+      paint();
+      return;
+    }
+    var action = event.target.closest("[data-action]");
+    if (action && action.getAttribute("data-id")) {
+      update(action.getAttribute("data-action"), [action.getAttribute("data-id")]);
+      return;
+    }
+    var bulkButton = event.target.closest("#cw-req-bulk button");
+    if (bulkButton) {
+      var ids = Array.prototype.map.call(body.querySelectorAll("input[type='checkbox']:checked"), function (box) {
+        return box.value;
+      });
+      update(bulkButton.getAttribute("data-action"), ids);
+    }
+  });
+
+  body.addEventListener("change", function () {
+    paintSelection();
+  });
+
+  function paintSelection() {
+    var boxes = body.querySelectorAll("input[type='checkbox']");
+    var checked = body.querySelectorAll("input[type='checkbox']:checked").length;
+    allBox.checked = boxes.length > 0 && checked === boxes.length;
+    bulk.hidden = checked === 0;
+  }
+
+  allBox.addEventListener("change", function () {
+    Array.prototype.forEach.call(body.querySelectorAll("input[type='checkbox']"), function (box) {
+      box.checked = allBox.checked;
+    });
+    paintSelection();
+  });
+
+  find.addEventListener("input", function () {
+    paint();
+  });
+
+  document.getElementById("cw-req-export").addEventListener("click", function () {
+    var lines = [["Title", "Author", "Requested by", "Date", "Status"]];
+    visibleRows().forEach(function (row) {
+      lines.push([row.title, row.author, row.user, row.date, labels[row.status] || row.status]);
+    });
+    var csv = lines.map(function (line) {
+      return line.map(function (value) {
+        var text = String(value || "");
+        if (/[",\n]/.test(text)) {
+          return '"' + text.replace(/"/g, '""') + '"';
+        }
+        return text;
+      }).join(",");
+    }).join("\n");
+    var blob = new Blob([csv], { type: "text/csv" });
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "book-requests.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  });
+
+  paint();
+})();

@@ -11,12 +11,10 @@
      data-shown="{{ discover_shown }}"
      data-total="{{ discover_total }}"
      data-grid-offset="{{ discover_grid_offset }}"
-     data-grid-count="{{ discover_grid_count }}"
-     data-count="{{ _('Showing {shown} of {total} titles and series') }}">
+     data-grid-count="{{ discover_grid_count }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   {{ discover_panel(discover_cards) }}
   {{ genre_bar(featured_genres, 'discover', '', extra_genres) }}
-  <p class="cw-discover-count" id="cw-discover-count" aria-live="polite">{{ _('Showing %(shown)s of %(total)s titles and series', shown=discover_shown, total=discover_total) }}</p>
   <div id="cw-discover-rows">
     {% for row in discover_rows %}
     {{ row.html|safe }}
@@ -28,7 +26,9 @@
   {% if discover_grid %}
   <section class="library-row-wrap" id="cw-discover-keep">
     <div class="library-row-head">
-      <h2>{{ _('Keep exploring') }}</h2>
+      <div>
+        <h2>{{ _('Keep exploring') }}</h2>
+      </div>
     </div>
     <div class="cw-book-grid" id="cw-discover-more">
       {% import 'library_card.html' as cards %}
@@ -41,7 +41,9 @@
   {% else %}
   <section class="library-row-wrap" id="cw-discover-keep" hidden>
     <div class="library-row-head">
-      <h2>{{ _('Keep exploring') }}</h2>
+      <div>
+        <h2>{{ _('Keep exploring') }}</h2>
+      </div>
     </div>
     <div class="cw-book-grid" id="cw-discover-more"></div>
     <div id="cw-discover-sentinel"></div>
@@ -53,6 +55,11 @@
   </div>
   {% if discover_debug %}
   <div id="cw-discover-debug"></div>
+  {% if plan_debug %}
+  {% with blocks=plan_debug, summary=_('Discover rows') %}
+  {% include 'library_discover_debug.html' %}
+  {% endwith %}
+  {% endif %}
   {% if genre_debug %}
   {% with blocks=genre_debug, summary=_('Genre rows') %}
   {% include 'library_discover_debug.html' %}

@@ -9,7 +9,7 @@
     <div class="cw-hero-main">
     {% set hero_href = item.more_url or (url_for('web.show_book', book_id=item.book.id) if item.book else '') %}
     {% if item.book %}
-    <div class="cw-hero-cover-wrap">
+    <div class="cw-hero-cover-wrap{% if item.plain_series and item.cover_ids and item.cover_ids|length > 1 %} is-stack{% endif %}">
       <a class="cw-hero-cover-link" href="{{ hero_href }}">
         {% if item.plain_series and item.cover_ids and item.cover_ids|length > 1 %}
         {{ series_stack(item.cover_ids, true) }}

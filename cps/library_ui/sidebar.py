@@ -73,8 +73,9 @@ def _load():
             .filter(filters)
             .group_by(db.Tags.id)
             .order_by(func.count(db.Books.id).desc(), db.Tags.name.asc())
-            .limit(8),
+            .limit(24),
             "category",
+            hide_tags=True,
         )
         payload["series"] = _rows(
             session.query(db.Series.id, db.Series.name, func.count(db.Books.id))
@@ -203,11 +204,16 @@ def _count(query):
         return None
 
 
-def _rows(query, kind, clean=False):
+def _rows(query, kind, clean=False, hide_tags=False):
+    from .shelf_config import tag_hidden
     found = []
     try:
         for item_id, name, count in query.all():
             label = (name or "").replace("|", ", ") if clean else (name or "")
+            if hide_tags and tag_hidden(label):
+                continue
+            if len(found) >= 8:
+                break
             found.append({
                 "name": label,
                 "count": int(count or 0),

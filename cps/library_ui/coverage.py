@@ -18,31 +18,30 @@ from .logger_helper import log
 
 
 LIMITS = (
-    {"where": "Home row cache", "kind": "cache", "value": "10 minutes, keyed by user id and language"},
-    {"where": "Home shelves", "kind": "minimum books", "value": "6 or the shelf is dropped"},
-    {"where": "Home shelves", "kind": "maximum books", "value": "20 per shelf, after scoring"},
-    {"where": "Home shelves", "kind": "main target", "value": "12 books before a shelf is treated as full"},
-    {"where": "Home shelves", "kind": "author cap", "value": "2 books per author on a shelf"},
-    {"where": "Home shelves", "kind": "series", "value": "one representative card per series before shelves are filled"},
-    {"where": "Home shelves", "kind": "seed", "value": "user id plus the calendar day, shared by every home shelf"},
-    {"where": "Home fallback rows", "kind": "maximum rows", "value": "3 extra rows, 20 books each"},
-    {"where": "Genres landing", "kind": "minimum books", "value": "8 cards or the row is dropped, after adjacent genres top it up"},
-    {"where": "Genres landing", "kind": "maximum books", "value": "8 cards on a row, one series and two books per author"},
-    {"where": "Genres landing", "kind": "repeats", "value": "a book is on one row, except Fresh on the shelf"},
-    {"where": "Genres landing", "kind": "seed", "value": "a new seed on every page load, and a different seed for each row"},
-    {"where": "Genres landing", "kind": "buckets", "value": "raw tags merge in genre_config.py, noise tags are ignored"},
-    {"where": "Single genre rows", "kind": "minimum books", "value": "8 or the carousel is omitted"},
-    {"where": "Single genre rows", "kind": "maximum books", "value": "8 cards, one series and two books per author"},
+    {"where": "Home shelves", "kind": "cache", "value": "a new mix on every reload"},
+    {"where": "Home shelves", "kind": "minimum books", "value": "6 units that pass every gate, or the shelf is dropped"},
+    {"where": "Home shelves", "kind": "maximum books", "value": "8 units per shelf"},
+    {"where": "Home shelves", "kind": "row count", "value": "10 to 12 shelves, personal first when that data exists"},
+    {"where": "Home shelves", "kind": "author cap", "value": "2 units per author, except the author spotlight"},
+    {"where": "Home shelves", "kind": "series", "value": "one card per series"},
+    {"where": "Home shelves", "kind": "seed", "value": "a new seed on every reload, plus a penalty for units shown recently"},
+    {"where": "Genres landing", "kind": "minimum books", "value": "6 cards or the row is dropped, after adjacent genres top it up"},
+    {"where": "Genres landing", "kind": "maximum books", "value": "8 cards on a row, one series and two units per author"},
+    {"where": "Genres landing", "kind": "repeats", "value": "a unit is on one row"},
+    {"where": "Genres landing", "kind": "seed", "value": "a new seed on every page load"},
+    {"where": "Genres landing", "kind": "buckets", "value": "raw tags merge in shelf_config.py, noise tags are ignored"},
+    {"where": "Single genre rows", "kind": "minimum books", "value": "6 or the carousel is omitted"},
+    {"where": "Single genre rows", "kind": "maximum books", "value": "8 cards, one series and two units per author"},
     {"where": "Single genre grid", "kind": "limit", "value": "every book in the bucket, no page size"},
     {"where": "Single genre", "kind": "seed", "value": "a new seed on every page load for the playful titles"},
     {"where": "Series landing", "kind": "covers", "value": "at most 3 covers per series card"},
     {"where": "Series landing", "kind": "cache", "value": "10 minutes, keyed by user id and language"},
     {"where": "Series landing", "kind": "seed", "value": "the calendar day, one featured series"},
     {"where": "Single series", "kind": "author row", "value": "at most 20 other books by the same author"},
-    {"where": "Discover rows", "kind": "minimum books", "value": "8 or the row is omitted"},
-    {"where": "Discover rows", "kind": "maximum books", "value": "12, or 15 for Roll the dice"},
-    {"where": "Discover rows", "kind": "row count", "value": "at most 12, and at most one book per 8 in the library"},
-    {"where": "Discover rows", "kind": "series and author", "value": "one series and two books per author inside a row"},
+    {"where": "Discover rows", "kind": "minimum books", "value": "6 or the row is omitted after adjacent top up"},
+    {"where": "Discover rows", "kind": "maximum books", "value": "8 units"},
+    {"where": "Discover rows", "kind": "row count", "value": "10 to 12 shelves, different from Home when that page was opened in this process"},
+    {"where": "Discover rows", "kind": "series and author", "value": "one series and two units per author inside a row, except the author spotlight"},
     {"where": "Discover grid", "kind": "page size", "value": "24"},
     {"where": "Discover panel", "kind": "limit", "value": "3 books, excluded from the rows and the grid"},
     {"where": "Discover", "kind": "seed", "value": "random token per page load, shared by the rows from that load"},
@@ -104,6 +103,8 @@ def build_report():
         })
 
     home_rows, home_funnel = _home(catalog, user_id, _build, _representatives, _score, _templates_for)
+    from .shelf_engine import last_audit
+    evidence = last_audit()
     add_page(_("Home"), "/", home_rows, expand=True)
     add_page(_("Genres"), "/genres", _genres_landing(catalog), expand=True)
     for row in _genre_pages(catalog):
@@ -158,6 +159,7 @@ def build_report():
         "busy": busy,
         "lists": lists,
         "limits": LIMITS,
+        "evidence": evidence,
         "generated": datetime.now().strftime("%b %d, %Y %H:%M"),
     }
 
@@ -173,7 +175,8 @@ def _home(catalog, user_id, build, representatives, score, templates_for):
             "name": row["title"],
             "ids": list(row.get("book_ids") or []),
             "candidates": None,
-            "dropped": [],
+            "dropped": [title for title, _reason in (row.get("reasons") or [])] if row.get("id") == "dropped" else [],
+            "reasons": ["%s: %s" % pair for pair in (row.get("reasons") or [])],
         })
     templates = templates_for(catalog, reps)
     funnel = []

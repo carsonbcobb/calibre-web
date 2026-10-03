@@ -52,7 +52,10 @@ def bar_context():
             return empty
         selected = set(selected_ids())
         genres = []
+        from .shelf_config import tag_hidden
         for tag in _popular_tags():
+            if tag_hidden(tag.name):
+                continue
             genres.append({
                 "id": tag.id,
                 "name": tag.name,

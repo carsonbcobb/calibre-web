@@ -354,6 +354,23 @@ class BookLookup(Base):
         return "<BookLookup %s>" % self.book_id
 
 
+class BookRequest(Base):
+    """A title a user asked to add. Stored only in app.db."""
+
+    __tablename__ = "book_requests"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    title = Column(String(200), nullable=False, default="")
+    author = Column(String(200), nullable=False, default="")
+    status = Column(String(16), nullable=False, default="pending", index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def __repr__(self):
+        return "<BookRequest %s>" % self.id
+
+
 class SentToFriend(Base):
     """A book queued for a friend. Stored only in app.db."""
 

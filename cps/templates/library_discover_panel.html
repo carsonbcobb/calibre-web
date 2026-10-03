@@ -1,6 +1,5 @@
 {% from 'cw_icons.html' import icon %}
 {% from 'cw_score.html' import score %}
-{% from 'library_card.html' import series_stack %}
 {% macro panel(discover_cards) -%}
 {% if discover_cards %}
 {% set spotlight = discover_cards[1] if discover_cards|length > 1 else discover_cards[0] %}
@@ -36,13 +35,9 @@
       {% for card in discover_cards %}
       <link rel="preload" as="image" href="{{ card.cover }}">
       {% set slot = 1 if discover_cards|length == 1 else loop.index0 %}
-      <button type="button" class="cw-discover-cover{% if card.kind == 'series' %} is-series{% endif %}" data-slot="{{ slot }}" data-layer="{{ slot }}" data-id="{{ card.id }}" aria-label="{{ card.title }}">
+      <button type="button" class="cw-discover-cover" data-slot="{{ slot }}" data-layer="{{ slot }}" data-id="{{ card.id }}" aria-label="{{ card.title }}">
         <span class="cw-discover-cover-lift">
-          {% if card.kind == 'series' and card.covers %}
-          {{ series_stack(card.covers, true) }}
-          {% else %}
           <img src="{{ card.cover }}" alt="" width="150" height="225" decoding="sync" fetchpriority="high">
-          {% endif %}
         </span>
       </button>
       {% endfor %}

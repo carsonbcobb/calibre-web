@@ -117,6 +117,25 @@ class LibraryPageSmokeTest(unittest.TestCase):
                     self.assertGreaterEqual(len(row_ids), 5, "%s discover rows %s" % (label, len(row_ids)))
                     self.assertGreaterEqual(cards, 24, "%s discover cards %s" % (label, cards))
 
+    def test_book_request_pages(self):
+        client = app.test_client()
+        self._login(client, 3)
+        response = client.get("/request")
+        self.assertEqual(200, response.status_code)
+        self.assertNotIn(b"Nothing matches", response.data)
+        response = client.get("/admin/requests")
+        self.assertEqual(403, response.status_code)
+        response = client.post("/admin/requests/update", data={"action": "delete", "ids": "1"})
+        self.assertEqual(403, response.status_code)
+        self._login(client, 1)
+        response = client.get("/request")
+        self.assertEqual(200, response.status_code)
+        self.assertIn(b"Request a Book", response.data)
+        response = client.get("/admin/requests")
+        self.assertEqual(200, response.status_code)
+        self.assertNotIn(b"Nothing matches", response.data)
+        self.assertIn(b"Book Requests", response.data)
+
     def _login(self, client, user_id):
         key = "smoke-%s" % user_id
         token = "smoke-token-%s" % user_id

@@ -32,7 +32,7 @@
     {% if library_custom_css %}
     <style id="library-custom-css">{{ library_custom_css|safe }}</style>
     {% endif %}
-    <link href="{{ url_for('static', filename='css/custom_theme.css') }}?v=18" rel="stylesheet" media="screen">
+    <link href="{{ url_for('static', filename='css/custom_theme.css') }}?v=30" rel="stylesheet" media="screen">
   </head>
   <body class="{{ page }} {{ bodyClass }}">
     <div class="navbar navbar-default navbar-static-top library-topnav" role="navigation">
@@ -75,6 +75,7 @@
             {% endif %}
             {% if current_user.role_admin() and not current_user.is_anonymous and not simple %}
               <a class="cw-nav-btn" id="top_tasks" href="{{url_for('tasks.get_tasks_status')}}" title="{{ _('Tasks') }}">{{ icon('list-checks') }}<span class="sr-only">{{ _('Tasks') }}</span></a>
+              <a class="cw-nav-btn" id="top_requests" href="{{ url_for('library_ui.admin_requests') }}" title="{{ _('Book requests') }}">{{ icon('inbox') }}<span class="sr-only">{{ _('Book requests') }}</span>{% if request_pending %}<span class="cw-req-badge">{{ request_pending if request_pending < 10 else '9+' }}</span>{% endif %}</a>
             {% endif %}
             {% if current_user.role_admin() %}
               <a class="cw-nav-btn" id="top_admin" href="{{url_for('admin.admin')}}" title="{{ _('Admin') }}">{{ icon('settings') }}<span class="sr-only">{{ _('Admin') }}</span></a>
@@ -88,6 +89,7 @@
                   <a href="{{ url_for('web.profile') }}">{{ _('Settings') }}</a>
                   {% if current_user.role_admin() %}
                   <a href="{{ url_for('tasks.get_tasks_status') }}">{{ _('Tasks') }}</a>
+                  <a href="{{ url_for('library_ui.admin_requests') }}">{{ _('Book requests') }}{% if request_pending %} <span class="cw-req-menu-count">{{ request_pending }}</span>{% endif %}</a>
                   <a href="{{ url_for('admin.admin') }}">{{ _('Admin') }}</a>
                   {% endif %}
                   <a href="{{ url_for('web.logout', next=(request.path + '?' + request.query_string.decode('utf-8')).rstrip('?')) }}">{{ _('Logout') }}</a>
@@ -165,6 +167,7 @@
               {% endif %}
               {% if current_user.is_authenticated %}
               <a class="cw-side-link{% if page == 'friends' %} is-active{% endif %}" href="{{ url_for('library_ui.friends_page') }}" title="{{ _('Friends') }}">{{ icon('users') }}<span class="cw-side-text">{{ _('Friends') }}</span></a>
+              <a class="cw-side-link{% if page == 'request' %} is-active{% endif %}" href="{{ url_for('library_ui.request_book') }}" title="{{ _('Request a Book') }}">{{ icon('book-plus') }}<span class="cw-side-text">{{ _('Request a Book') }}</span></a>
               {% endif %}
             </div>
             {% endif %}
@@ -231,7 +234,7 @@
     <script src="{{ url_for('static', filename='js/libs/jquery.form.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/uploadprogress.js') }}"> </script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/library_ui.js') }}?v=13"></script>
+    <script src="{{ url_for('static', filename='js/library_ui.js') }}?v=15"></script>
     {% block js %}{% endblock %}
   </body>
 </html>
